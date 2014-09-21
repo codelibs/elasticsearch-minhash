@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<name>elasticsearch-analysis-minhash</name>
+	<name>elasticsearch-minhash</name>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.codelibs</groupId>
-	<artifactId>elasticsearch-analysis-minhash</artifactId>
+	<artifactId>elasticsearch-minhash</artifactId>
 	<version>1.3.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>This plugin provides b-bit minhash algorism.</description>
 	<inceptionYear>2011</inceptionYear>
-	<url>https://github.com/codelibs/elasticsearch-analysis-minhash</url>
+	<url>https://github.com/codelibs/elasticsearch-minhash</url>
 	<licenses>
 		<license>
 			<name>The Apache Software License, Version 2.0</name>
@@ -18,9 +18,9 @@
 		</license>
 	</licenses>
     <scm>
-        <connection>scm:git:git@github.com:codelibs/elasticsearch-analysis-minhash.git</connection>
-        <developerConnection>scm:git:git@github.com:codelibs/elasticsearch-analysis-minhash.git</developerConnection>
-        <url>git@github.com:codelibs/elasticsearch-analysis-minhash.git</url>
+        <connection>scm:git:git@github.com:codelibs/elasticsearch-minhash.git</connection>
+        <developerConnection>scm:git:git@github.com:codelibs/elasticsearch-minhash.git</developerConnection>
+        <url>git@github.com:codelibs/elasticsearch-minhash.git</url>
     </scm>
     <parent>
         <groupId>org.sonatype.oss</groupId>
