@@ -72,7 +72,7 @@ public class MinHashTokenFilter extends TokenFilter {
         BitSet bitSet = new BitSet(minHashValues.length * hashBit);
         for (long i : minHashValues) {
             for (int j = 0; j < hashBit; j++) {
-                bitSet.set(pos, (int) (i & mask));
+                bitSet.set(pos, (int) (i & mask) == 1);
                 pos++;
                 i >>>= shift;
             }
