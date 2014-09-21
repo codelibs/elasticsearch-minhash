@@ -77,10 +77,8 @@ public class MinHashPluginTest extends TestCase {
 
                 // minhash
                 .startObject("minhash_value")//
-                .field("type", "string")//
-                .field("store", true)//
-                .field("index_options", "docs")//
-                .field("index_analyzer", "minhash_analyzer")//
+                .field("type", "minhash")//
+                .field("minhash_analyzer", "minhash_analyzer")//
                 .endObject()//
 
                 .endObject()//

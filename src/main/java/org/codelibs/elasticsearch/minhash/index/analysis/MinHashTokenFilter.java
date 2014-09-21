@@ -7,6 +7,9 @@ import java.util.BitSet;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
@@ -15,6 +18,12 @@ import com.google.common.io.BaseEncoding;
 public class MinHashTokenFilter extends TokenFilter {
 
     private final CharTermAttribute termAttr = addAttribute(CharTermAttribute.class);
+
+    private final PositionIncrementAttribute posIncrAttribute = addAttribute(PositionIncrementAttribute.class);
+
+    private final OffsetAttribute offsetAttribute = addAttribute(OffsetAttribute.class);
+
+    private final PayloadAttribute payloadAttribute = getAttribute(PayloadAttribute.class);
 
     private HashFunction[] hashFunctions;
 
