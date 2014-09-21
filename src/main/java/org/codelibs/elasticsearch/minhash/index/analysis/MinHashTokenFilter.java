@@ -42,7 +42,7 @@ public class MinHashTokenFilter extends TokenFilter {
     }
 
     @Override
-    public boolean incrementToken() throws IOException {
+    public final boolean incrementToken() throws IOException {
         int funcSize = hashFunctions.length;
         while (input.incrementToken()) {
             String term = termAttr.toString();
