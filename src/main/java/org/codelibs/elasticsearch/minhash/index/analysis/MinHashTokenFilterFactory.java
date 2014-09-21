@@ -23,8 +23,8 @@ public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
             @Assisted Settings settings) {
         super(index, indexSettings, name, settings);
 
-        hashBit = settings.getAsInt("b", 1);
-        int numOfHash = settings.getAsInt("k", 128);
+        hashBit = settings.getAsInt("bit", 1);
+        int numOfHash = settings.getAsInt("size", 128);
         int seed = settings.getAsInt("seed", 0);
 
         hashFunctions = createHashFunctions(seed, numOfHash);

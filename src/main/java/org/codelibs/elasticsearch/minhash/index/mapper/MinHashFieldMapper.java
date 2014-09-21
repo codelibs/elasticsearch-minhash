@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.FieldInfo;
@@ -39,6 +41,8 @@ import org.elasticsearch.index.mapper.MergeMappingException;
 import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.core.AbstractFieldMapper;
 import org.elasticsearch.index.mapper.core.NumberFieldMapper;
+
+import com.google.common.io.BaseEncoding;
 
 public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
@@ -204,17 +208,33 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
         if (!fieldType().stored() && !hasDocValues()) {
             return;
         }
-        byte[] value = context.parseExternalValue(byte[].class);
-        if (value == null) {
+        String text = context.parseExternalValue(String.class);
+        if (text == null) {
             if (context.parser().currentToken() == XContentParser.Token.VALUE_NULL) {
                 return;
             } else {
-                value = context.parser().binaryValue();
+                text = context.parser().textOrNull();
             }
+        }
+        if (text == null) {
+            return;
+        }
+
+        byte[] value = null;
+        try (TokenStream stream = minhashAnalyzer.tokenStream("minhash", text)) {
+            CharTermAttribute termAtt = stream
+                    .addAttribute(CharTermAttribute.class);
+            stream.reset();
+            if (stream.incrementToken()) {
+                String minhashValue = termAtt.toString();
+                value = BaseEncoding.base64().decode(minhashValue);
+            }
+            stream.end();
         }
         if (value == null) {
             return;
         }
+
         if (compress != null && compress
                 && !CompressorFactory.isCompressed(value, 0, value.length)) {
             if (compressThreshold == -1 || value.length > compressThreshold) {
