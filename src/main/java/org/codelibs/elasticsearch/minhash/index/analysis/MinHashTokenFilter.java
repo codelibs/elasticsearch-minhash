@@ -8,7 +8,6 @@ import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 
 import com.google.common.hash.HashCode;
@@ -19,11 +18,9 @@ public class MinHashTokenFilter extends TokenFilter {
 
     private final CharTermAttribute termAttr = addAttribute(CharTermAttribute.class);
 
-    private final PositionIncrementAttribute posIncrAttribute = addAttribute(PositionIncrementAttribute.class);
+    private final PositionIncrementAttribute posIncrAttr = addAttribute(PositionIncrementAttribute.class);
 
-    private final OffsetAttribute offsetAttribute = addAttribute(OffsetAttribute.class);
-
-    private final PayloadAttribute payloadAttribute = getAttribute(PayloadAttribute.class);
+    private final OffsetAttribute offsetAttr = addAttribute(OffsetAttribute.class);
 
     private HashFunction[] hashFunctions;
 
@@ -33,8 +30,8 @@ public class MinHashTokenFilter extends TokenFilter {
 
     private String minHash;
 
-    public MinHashTokenFilter(TokenStream input, HashFunction[] hashFunctions,
-            int hashBit) {
+    public MinHashTokenFilter(final TokenStream input,
+            final HashFunction[] hashFunctions, final int hashBit) {
         super(input);
         this.hashFunctions = hashFunctions;
         this.hashBit = hashBit;
@@ -43,12 +40,13 @@ public class MinHashTokenFilter extends TokenFilter {
 
     @Override
     public final boolean incrementToken() throws IOException {
-        int funcSize = hashFunctions.length;
+        final int funcSize = hashFunctions.length;
         while (input.incrementToken()) {
-            String term = termAttr.toString();
+            final String term = termAttr.toString();
             for (int i = 0; i < funcSize; i++) {
-                HashCode hashCode = hashFunctions[i].hashUnencodedChars(term);
-                long value = hashCode.asLong();
+                final HashCode hashCode = hashFunctions[i]
+                        .hashUnencodedChars(term);
+                final long value = hashCode.asLong();
                 if (value < minHashValues[i]) {
                     minHashValues[i] = value;
                 }
@@ -62,6 +60,8 @@ public class MinHashTokenFilter extends TokenFilter {
         minHash = BaseEncoding.base64().encode(
                 calcMinHash(minHashValues, hashBit));
         termAttr.setEmpty().append(minHash);
+        posIncrAttr.setPositionIncrement(0);
+        offsetAttr.setOffset(0, minHash.length());
 
         return true;
     }
@@ -73,12 +73,13 @@ public class MinHashTokenFilter extends TokenFilter {
         minHash = null;
     }
 
-    protected static byte[] calcMinHash(long[] minHashValues, int hashBit) {
-        int shift = 1;
-        int radix = 1 << shift;
-        long mask = radix - 1;
+    protected static byte[] calcMinHash(final long[] minHashValues,
+            final int hashBit) {
+        final int shift = 1;
+        final int radix = 1 << shift;
+        final long mask = radix - 1;
         int pos = 0;
-        BitSet bitSet = new BitSet(minHashValues.length * hashBit);
+        final BitSet bitSet = new BitSet(minHashValues.length * hashBit);
         for (long i : minHashValues) {
             for (int j = 0; j < hashBit; j++) {
                 bitSet.set(pos, (int) (i & mask) == 1);

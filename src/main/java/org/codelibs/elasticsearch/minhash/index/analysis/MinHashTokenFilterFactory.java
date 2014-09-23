@@ -1,6 +1,7 @@
 package org.codelibs.elasticsearch.minhash.index.analysis;
 
 import org.apache.lucene.analysis.TokenStream;
+import org.codelibs.elasticsearch.minhash.MinHash;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.assistedinject.Assisted;
 import org.elasticsearch.common.settings.Settings;
@@ -9,7 +10,6 @@ import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
 import org.elasticsearch.index.settings.IndexSettings;
 
 import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 
 public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
 
@@ -18,16 +18,16 @@ public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
     private HashFunction[] hashFunctions;
 
     @Inject
-    public MinHashTokenFilterFactory(Index index,
-            @IndexSettings Settings indexSettings, @Assisted String name,
-            @Assisted Settings settings) {
+    public MinHashTokenFilterFactory(final Index index,
+            @IndexSettings final Settings indexSettings,
+            @Assisted final String name, @Assisted final Settings settings) {
         super(index, indexSettings, name, settings);
 
         hashBit = settings.getAsInt("bit", 1);
-        int numOfHash = settings.getAsInt("size", 128);
-        int seed = settings.getAsInt("seed", 0);
+        final int numOfHash = settings.getAsInt("size", 128);
+        final int seed = settings.getAsInt("seed", 0);
 
-        hashFunctions = createHashFunctions(seed, numOfHash);
+        hashFunctions = MinHash.createHashFunctions(seed, numOfHash);
 
         if (logger.isDebugEnabled()) {
             logger.debug(
@@ -37,15 +37,7 @@ public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
     }
 
     @Override
-    public TokenStream create(TokenStream tokenStream) {
+    public TokenStream create(final TokenStream tokenStream) {
         return new MinHashTokenFilter(tokenStream, hashFunctions, hashBit);
-    }
-
-    public static HashFunction[] createHashFunctions(int seed, int num) {
-        HashFunction[] hashFunctions = new HashFunction[num];
-        for (int i = 0; i < num; i++) {
-            hashFunctions[i] = Hashing.murmur3_128(seed + i);
-        }
-        return hashFunctions;
     }
 }

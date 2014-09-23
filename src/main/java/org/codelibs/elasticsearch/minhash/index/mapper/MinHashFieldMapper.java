@@ -7,13 +7,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.util.BytesRef;
+import org.codelibs.elasticsearch.minhash.MinHash;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Base64;
@@ -42,13 +41,11 @@ import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.core.AbstractFieldMapper;
 import org.elasticsearch.index.mapper.core.NumberFieldMapper;
 
-import com.google.common.io.BaseEncoding;
-
 public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
     public static final String CONTENT_TYPE = "minhash";
 
-    public static MinHashFieldMapper.Builder minhashField(String name) {
+    public static MinHashFieldMapper.Builder minhashField(final String name) {
         return new MinHashFieldMapper.Builder(name);
     }
 
@@ -74,23 +71,23 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
         private NamedAnalyzer minhashAnalyzer;
 
-        public Builder(String name) {
+        public Builder(final String name) {
             super(name, new FieldType(Defaults.FIELD_TYPE));
             builder = this;
         }
 
-        public Builder compress(boolean compress) {
+        public Builder compress(final boolean compress) {
             this.compress = compress;
             return this;
         }
 
-        public Builder compressThreshold(long compressThreshold) {
+        public Builder compressThreshold(final long compressThreshold) {
             this.compressThreshold = compressThreshold;
             return this;
         }
 
         @Override
-        public MinHashFieldMapper build(BuilderContext context) {
+        public MinHashFieldMapper build(final BuilderContext context) {
             return new MinHashFieldMapper(buildNames(context), fieldType,
                     docValues, compress, compressThreshold, postingsProvider,
                     docValuesProvider, fieldDataSettings,
@@ -98,7 +95,7 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
                     minhashAnalyzer);
         }
 
-        public void minhashAnalyzer(NamedAnalyzer minhashAnalyzer) {
+        public void minhashAnalyzer(final NamedAnalyzer minhashAnalyzer) {
             this.minhashAnalyzer = minhashAnalyzer;
         }
 
@@ -106,13 +103,16 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node,
-                ParserContext parserContext) throws MapperParsingException {
-            MinHashFieldMapper.Builder builder = minhashField(name);
+        public Mapper.Builder parse(final String name,
+                final Map<String, Object> node,
+                final ParserContext parserContext)
+                throws MapperParsingException {
+            final MinHashFieldMapper.Builder builder = minhashField(name);
             parseField(builder, name, node, parserContext);
-            for (Map.Entry<String, Object> entry : node.entrySet()) {
-                String fieldName = Strings.toUnderscoreCase(entry.getKey());
-                Object fieldNode = entry.getValue();
+            for (final Map.Entry<String, Object> entry : node.entrySet()) {
+                final String fieldName = Strings.toUnderscoreCase(entry
+                        .getKey());
+                final Object fieldNode = entry.getValue();
                 if (fieldName.equals("compress") && fieldNode != null) {
                     builder.compress(nodeBooleanValue(fieldNode));
                 } else if (fieldName.equals("compress_threshold")
@@ -129,8 +129,8 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
                     }
                 } else if (fieldName.equals("minhash_analyzer")
                         && fieldNode != null) {
-                    NamedAnalyzer analyzer = parserContext.analysisService()
-                            .analyzer(fieldNode.toString());
+                    final NamedAnalyzer analyzer = parserContext
+                            .analysisService().analyzer(fieldNode.toString());
                     builder.minhashAnalyzer(analyzer);
                 }
             }
@@ -144,12 +144,14 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
     private NamedAnalyzer minhashAnalyzer;
 
-    protected MinHashFieldMapper(Names names, FieldType fieldType,
-            Boolean docValues, Boolean compress, long compressThreshold,
-            PostingsFormatProvider postingsProvider,
-            DocValuesFormatProvider docValuesProvider,
-            @Nullable Settings fieldDataSettings, MultiFields multiFields,
-            CopyTo copyTo, NamedAnalyzer minhashAnalyzer) {
+    protected MinHashFieldMapper(final Names names, final FieldType fieldType,
+            final Boolean docValues, final Boolean compress,
+            final long compressThreshold,
+            final PostingsFormatProvider postingsProvider,
+            final DocValuesFormatProvider docValuesProvider,
+            @Nullable final Settings fieldDataSettings,
+            final MultiFields multiFields, final CopyTo copyTo,
+            final NamedAnalyzer minhashAnalyzer) {
         super(names, 1.0f, fieldType, docValues, null, null, postingsProvider,
                 docValuesProvider, null, null, fieldDataSettings, null,
                 multiFields, copyTo);
@@ -169,12 +171,12 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
     }
 
     @Override
-    public Object valueForSearch(Object value) {
+    public Object valueForSearch(final Object value) {
         return value(value);
     }
 
     @Override
-    public BytesReference value(Object value) {
+    public BytesReference value(final Object value) {
         if (value == null) {
             return null;
         }
@@ -189,22 +191,22 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
         } else {
             try {
                 bytes = new BytesArray(Base64.decode(value.toString()));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ElasticsearchParseException(
                         "failed to convert bytes", e);
             }
         }
         try {
             return CompressorFactory.uncompressIfNeeded(bytes);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ElasticsearchParseException(
                     "failed to decompress source", e);
         }
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<Field> fields)
-            throws IOException {
+    protected void parseCreateField(final ParseContext context,
+            final List<Field> fields) throws IOException {
         if (!fieldType().stored() && !hasDocValues()) {
             return;
         }
@@ -220,17 +222,7 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             return;
         }
 
-        byte[] value = null;
-        try (TokenStream stream = minhashAnalyzer.tokenStream("minhash", text)) {
-            CharTermAttribute termAtt = stream
-                    .addAttribute(CharTermAttribute.class);
-            stream.reset();
-            if (stream.incrementToken()) {
-                String minhashValue = termAtt.toString();
-                value = BaseEncoding.base64().decode(minhashValue);
-            }
-            stream.end();
-        }
+        byte[] value = MinHash.calcMinHash(minhashAnalyzer, text);
         if (value == null) {
             return;
         }
@@ -238,9 +230,9 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
         if (compress != null && compress
                 && !CompressorFactory.isCompressed(value, 0, value.length)) {
             if (compressThreshold == -1 || value.length > compressThreshold) {
-                BytesStreamOutput bStream = new BytesStreamOutput();
-                StreamOutput stream = CompressorFactory.defaultCompressor()
-                        .streamOutput(bStream);
+                final BytesStreamOutput bStream = new BytesStreamOutput();
+                final StreamOutput stream = CompressorFactory
+                        .defaultCompressor().streamOutput(bStream);
                 stream.writeBytes(value, 0, value.length);
                 stream.close();
                 value = bStream.bytes().toBytes();
@@ -270,8 +262,9 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder,
-            boolean includeDefaults, Params params) throws IOException {
+    protected void doXContentBody(final XContentBuilder builder,
+            final boolean includeDefaults, final Params params)
+            throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
         builder.field("minhash_analyzer", minhashAnalyzer.name());
         if (compress != null) {
@@ -288,20 +281,20 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
     }
 
     @Override
-    public void merge(Mapper mergeWith, MergeContext mergeContext)
+    public void merge(final Mapper mergeWith, final MergeContext mergeContext)
             throws MergeMappingException {
         super.merge(mergeWith, mergeContext);
         if (!this.getClass().equals(mergeWith.getClass())) {
             return;
         }
 
-        MinHashFieldMapper sourceMergeWith = (MinHashFieldMapper) mergeWith;
+        final MinHashFieldMapper sourceMergeWith = (MinHashFieldMapper) mergeWith;
         if (!mergeContext.mergeFlags().simulate()) {
             if (sourceMergeWith.compress != null) {
-                this.compress = sourceMergeWith.compress;
+                compress = sourceMergeWith.compress;
             }
             if (sourceMergeWith.compressThreshold != -1) {
-                this.compressThreshold = sourceMergeWith.compressThreshold;
+                compressThreshold = sourceMergeWith.compressThreshold;
             }
         }
     }
@@ -319,13 +312,13 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
         private int totalSize = 0;
 
-        public CustomBinaryDocValuesField(String name, byte[] bytes) {
+        public CustomBinaryDocValuesField(final String name, final byte[] bytes) {
             super(name);
             bytesList = new ObjectArrayList<>();
             add(bytes);
         }
 
-        public void add(byte[] bytes) {
+        public void add(final byte[] bytes) {
             bytesList.add(bytes);
             totalSize += bytes.length;
         }
@@ -334,18 +327,18 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
         public BytesRef binaryValue() {
             try {
                 CollectionUtils.sortAndDedup(bytesList);
-                int size = bytesList.size();
+                final int size = bytesList.size();
                 final byte[] bytes = new byte[totalSize + (size + 1) * 5];
-                ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
+                final ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
                 out.writeVInt(size); // write total number of values
                 for (int i = 0; i < size; i++) {
                     final byte[] value = bytesList.get(i);
-                    int valueLength = value.length;
+                    final int valueLength = value.length;
                     out.writeVInt(valueLength);
                     out.writeBytes(value, 0, valueLength);
                 }
                 return new BytesRef(bytes, 0, out.getPosition());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ElasticsearchException("Failed to get binary value",
                         e);
             }

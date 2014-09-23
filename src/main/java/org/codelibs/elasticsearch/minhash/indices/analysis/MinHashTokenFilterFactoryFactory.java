@@ -9,13 +9,13 @@ public class MinHashTokenFilterFactoryFactory extends
     private final TokenFilterFactory tokenFilterFactory;
 
     public MinHashTokenFilterFactoryFactory(
-            TokenFilterFactory tokenFilterFactory) {
+            final TokenFilterFactory tokenFilterFactory) {
         super(tokenFilterFactory);
         this.tokenFilterFactory = tokenFilterFactory;
     }
 
     @Override
-    public TokenFilterFactory create(String name, Settings settings) {
+    public TokenFilterFactory create(final String name, final Settings settings) {
         return tokenFilterFactory;
     }
 }

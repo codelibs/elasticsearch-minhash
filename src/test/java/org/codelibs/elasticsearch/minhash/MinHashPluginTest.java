@@ -51,7 +51,7 @@ public class MinHashPluginTest extends TestCase {
         final String type = "test_type";
 
         // create an index
-        String indexSettings = "{\"index\":{\"analysis\":{\"analyzer\":{"
+        final String indexSettings = "{\"index\":{\"analysis\":{\"analyzer\":{"
                 + "\"minhash_analyzer1\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"minhash\"]},"
                 + "\"minhash_analyzer2\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhashfilter1\"]},"
                 + "\"minhash_analyzer3\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhashfilter2\"]}"
@@ -114,12 +114,12 @@ public class MinHashPluginTest extends TestCase {
         for (int i = 1; i <= 1000; i++) {
             final IndexResponse indexResponse1 = runner.insert(index, type,
                     String.valueOf(i), "{\"id\":\"" + i + "\",\"msg\":\"test "
-                            + (i % 100) + "\"}");
+                            + i % 100 + "\"}");
             assertTrue(indexResponse1.isCreated());
         }
         runner.refresh();
 
-        Client client = runner.client();
+        final Client client = runner.client();
 
         test_get(client, index, type, "1", new byte[] { 82, 56, -67, -10, 55,
                 -89, -85, -73, 90, -35, -93, 74, 77, -121, 60, -55 },
@@ -140,28 +140,29 @@ public class MinHashPluginTest extends TestCase {
 
     }
 
-    private void test_get(Client client, final String index, final String type,
-            String id, byte[] hash1, byte[] hash2, byte[] hash3) {
-        GetResponse response = client
+    private void test_get(final Client client, final String index,
+            final String type, final String id, final byte[] hash1,
+            final byte[] hash2, final byte[] hash3) {
+        final GetResponse response = client
                 .prepareGet(index, type, id)
                 .setFields("_source", "minhash_value1", "minhash_value2",
                         "minhash_value3").execute().actionGet();
         assertTrue(response.isExists());
-        Map<String, Object> source = response.getSourceAsMap();
-        assertEquals("test " + (Integer.parseInt(id) % 100), source.get("msg"));
+        final Map<String, Object> source = response.getSourceAsMap();
+        assertEquals("test " + Integer.parseInt(id) % 100, source.get("msg"));
 
-        GetField field1 = response.getField("minhash_value1");
-        BytesArray value1 = (BytesArray) field1.getValue();
+        final GetField field1 = response.getField("minhash_value1");
+        final BytesArray value1 = (BytesArray) field1.getValue();
         assertEquals(hash1.length, value1.length());
         Assert.assertArrayEquals(hash1, value1.array());
 
-        GetField field2 = response.getField("minhash_value2");
-        BytesArray value2 = (BytesArray) field2.getValue();
+        final GetField field2 = response.getField("minhash_value2");
+        final BytesArray value2 = (BytesArray) field2.getValue();
         assertEquals(hash2.length, value2.length());
         Assert.assertArrayEquals(hash2, value2.array());
 
-        GetField field3 = response.getField("minhash_value3");
-        BytesArray value3 = (BytesArray) field3.getValue();
+        final GetField field3 = response.getField("minhash_value3");
+        final BytesArray value3 = (BytesArray) field3.getValue();
         assertEquals(hash3.length, value3.length());
         Assert.assertArrayEquals(hash3, value3.array());
     }

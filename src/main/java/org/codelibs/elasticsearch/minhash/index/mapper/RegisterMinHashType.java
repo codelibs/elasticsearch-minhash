@@ -10,8 +10,9 @@ import org.elasticsearch.index.settings.IndexSettings;
 public class RegisterMinHashType extends AbstractIndexComponent {
 
     @Inject
-    public RegisterMinHashType(Index index,
-            @IndexSettings Settings indexSettings, MapperService mapperService) {
+    public RegisterMinHashType(final Index index,
+            @IndexSettings final Settings indexSettings,
+            final MapperService mapperService) {
         super(index, indexSettings);
 
         mapperService.documentMapperParser().putTypeParser("minhash",

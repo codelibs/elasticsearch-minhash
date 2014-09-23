@@ -29,13 +29,13 @@ public class MinHashPlugin extends AbstractPlugin {
                 .<Class<? extends Module>> of(MinHashAnalysisModule.class);
     }
 
-    public void onModule(AnalysisModule module) {
+    public void onModule(final AnalysisModule module) {
         module.addTokenFilter("minhash", MinHashTokenFilterFactory.class);
     }
 
     @Override
     public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> modules = newArrayList();
+        final Collection<Class<? extends Module>> modules = newArrayList();
         modules.add(MinHashIndexModule.class);
         return modules;
     }
