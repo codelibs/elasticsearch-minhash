@@ -3,6 +3,7 @@ package org.codelibs.elasticsearch.minhash.script;
 import java.util.Map;
 
 import org.codelibs.elasticsearch.minhash.MinHash;
+import org.codelibs.elasticsearch.minhash.MinHashException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.script.AbstractExecutableScript;
@@ -44,10 +45,15 @@ public class DiversitySortScript extends AbstractExecutableScript {
             for (int j = 0; j < pos; j++) {
                 final InternalSearchHit hit = searchHits[i];
                 final SearchHitField field = hit.getFields().get(minhashField);
-                final BytesArray value = field.getValue();
                 final InternalSearchHit newHit = newSearchHits[j];
                 final SearchHitField newField = newHit.getFields().get(
                         minhashField);
+                if (field == null || newField == null) {
+                    throw new MinHashException(minhashField
+                            + " field does not exists: field:" + field
+                            + " newField:" + newField);
+                }
+                final BytesArray value = field.getValue();
                 final BytesArray newValue = newField.getValue();
                 if (MinHash.compare(value, newValue) > threshold) {
                     exists = true;
