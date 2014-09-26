@@ -315,10 +315,17 @@ public class MinHashPluginTest extends TestCase {
                             "minhash_value3")//
                     .endObject()//
 
+                    // bits
+                    .startObject("bits")//
+                    .field("type", "string")//
+                    .field("store", true)//
+                    .endObject()//
+
                     // minhash
                     .startObject("minhash_value1")//
                     .field("type", "minhash")//
                     .field("minhash_analyzer", "minhash_analyzer1")//
+                    .field("copy_bits_to", "bits")//
                     .endObject()//
 
                     // minhash

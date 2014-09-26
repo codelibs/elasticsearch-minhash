@@ -94,4 +94,24 @@ public class MinHash {
         }
         return value;
     }
+
+    public static String toBinaryString(final byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        final StringBuilder buf = new StringBuilder(data.length * 8);
+        for (final byte element : data) {
+            byte bit = element;
+            for (int j = 0; j < 8; j++) {
+                if ((bit & 1) == 1) {
+                    buf.append('1');
+                } else {
+                    buf.append('0');
+                }
+                bit >>= 1;
+            }
+        }
+        return buf.toString();
+    }
+
 }

@@ -20,6 +20,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.ImmutableList;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.hppc.ObjectArrayList;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -33,6 +34,8 @@ import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.codec.docvaluesformat.DocValuesFormatProvider;
 import org.elasticsearch.index.codec.postingsformat.PostingsFormatProvider;
 import org.elasticsearch.index.fielddata.FieldDataType;
+import org.elasticsearch.index.mapper.ContentPath;
+import org.elasticsearch.index.mapper.FieldMappers;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MergeContext;
@@ -40,6 +43,7 @@ import org.elasticsearch.index.mapper.MergeMappingException;
 import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.core.AbstractFieldMapper;
 import org.elasticsearch.index.mapper.core.NumberFieldMapper;
+import org.elasticsearch.index.mapper.object.ObjectMapper;
 
 public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
@@ -71,6 +75,8 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
         private NamedAnalyzer minhashAnalyzer;
 
+        private String copyBitsTo;
+
         public Builder(final String name) {
             super(name, new FieldType(Defaults.FIELD_TYPE));
             builder = this;
@@ -92,11 +98,15 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
                     docValues, compress, compressThreshold, postingsProvider,
                     docValuesProvider, fieldDataSettings,
                     multiFieldsBuilder.build(this, context), copyTo,
-                    minhashAnalyzer);
+                    minhashAnalyzer, copyBitsTo);
         }
 
         public void minhashAnalyzer(final NamedAnalyzer minhashAnalyzer) {
             this.minhashAnalyzer = minhashAnalyzer;
+        }
+
+        public void copyBitsTo(final String copyBitsTo) {
+            this.copyBitsTo = copyBitsTo;
         }
 
     }
@@ -132,6 +142,9 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
                     final NamedAnalyzer analyzer = parserContext
                             .analysisService().analyzer(fieldNode.toString());
                     builder.minhashAnalyzer(analyzer);
+                } else if (fieldName.equals("copy_bits_to")
+                        && fieldNode != null) {
+                    builder.copyBitsTo(fieldNode.toString());
                 }
             }
             return builder;
@@ -144,6 +157,8 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
 
     private NamedAnalyzer minhashAnalyzer;
 
+    private String copyBitsTo;
+
     protected MinHashFieldMapper(final Names names, final FieldType fieldType,
             final Boolean docValues, final Boolean compress,
             final long compressThreshold,
@@ -151,13 +166,14 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             final DocValuesFormatProvider docValuesProvider,
             @Nullable final Settings fieldDataSettings,
             final MultiFields multiFields, final CopyTo copyTo,
-            final NamedAnalyzer minhashAnalyzer) {
+            final NamedAnalyzer minhashAnalyzer, final String copyBitsTo) {
         super(names, 1.0f, fieldType, docValues, null, null, postingsProvider,
                 docValuesProvider, null, null, fieldDataSettings, null,
                 multiFields, copyTo);
         this.compress = compress;
         this.compressThreshold = compressThreshold;
         this.minhashAnalyzer = minhashAnalyzer;
+        this.copyBitsTo = copyBitsTo;
     }
 
     @Override
@@ -227,6 +243,19 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             return;
         }
 
+        if (copyBitsTo != null) {
+            final CopyBitsTo.Builder builder = new CopyBitsTo.Builder();
+            builder.add(copyBitsTo);
+            final CopyBitsTo copyBitsTo = builder.build();
+            final Object original = context.externalValue();
+            try {
+                context.externalValue(MinHash.toBinaryString(value));
+                copyBitsTo.parse(context);
+            } finally {
+                context.externalValue(original);
+            }
+        }
+
         if (compress != null && compress
                 && !CompressorFactory.isCompressed(value, 0, value.length)) {
             if (compressThreshold == -1 || value.length > compressThreshold) {
@@ -267,6 +296,7 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
         builder.field("minhash_analyzer", minhashAnalyzer.name());
+        builder.field("copy_bits_to", copyBitsTo);
         if (compress != null) {
             builder.field("compress", compress);
         } else if (includeDefaults) {
@@ -344,5 +374,125 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             }
 
         }
+    }
+
+    public static class CopyBitsTo {
+
+        private final ImmutableList<String> copyBitsToFields;
+
+        private CopyBitsTo(final ImmutableList<String> copyToFields) {
+            copyBitsToFields = copyToFields;
+        }
+
+        /**
+         * Creates instances of the fields that the current field should be copied to
+         */
+        public void parse(final ParseContext context) throws IOException {
+            for (final String field : copyBitsToFields) {
+                parse(field, context);
+            }
+        }
+
+        public XContentBuilder toXContent(final XContentBuilder builder,
+                final Params params) throws IOException {
+            if (!copyBitsToFields.isEmpty()) {
+                builder.startArray("copy_bits_to");
+                for (final String field : copyBitsToFields) {
+                    builder.value(field);
+                }
+                builder.endArray();
+            }
+            return builder;
+        }
+
+        public static class Builder {
+            private final ImmutableList.Builder<String> copyToBuilders = ImmutableList
+                    .builder();
+
+            public Builder add(final String field) {
+                copyToBuilders.add(field);
+                return this;
+            }
+
+            public CopyBitsTo build() {
+                return new CopyBitsTo(copyToBuilders.build());
+            }
+        }
+
+        public ImmutableList<String> copyToFields() {
+            return copyBitsToFields;
+        }
+
+        /**
+         * Creates an copy of the current field with given field name and boost
+         */
+        public void parse(final String field, final ParseContext context)
+                throws IOException {
+            final FieldMappers mappers = context.docMapper().mappers()
+                    .indexName(field);
+            if (mappers != null && !mappers.isEmpty()) {
+                mappers.mapper().parse(context);
+            } else {
+                final int posDot = field.lastIndexOf('.');
+                if (posDot > 0) {
+                    // Compound name
+                    final String objectPath = field.substring(0, posDot);
+                    final String fieldPath = field.substring(posDot + 1);
+                    final ObjectMapper mapper = context.docMapper()
+                            .objectMappers().get(objectPath);
+                    if (mapper == null) {
+                        //TODO: Create an object dynamically?
+                        throw new MapperParsingException(
+                                "attempt to copy value to non-existing object ["
+                                        + field + "]");
+                    }
+
+                    final ContentPath.Type origPathType = context.path()
+                            .pathType();
+                    context.path().pathType(ContentPath.Type.FULL);
+                    context.path().add(objectPath);
+
+                    // We might be in dynamically created field already, so need to clean withinNewMapper flag
+                    // and then restore it, so we wouldn't miss new mappers created from copy_to fields
+                    final boolean origWithinNewMapper = context
+                            .isWithinNewMapper();
+                    context.clearWithinNewMapper();
+
+                    try {
+                        mapper.parseDynamicValue(context, fieldPath, context
+                                .parser().currentToken());
+                    } finally {
+                        if (origWithinNewMapper) {
+                            context.setWithinNewMapper();
+                        } else {
+                            context.clearWithinNewMapper();
+                        }
+                        context.path().remove();
+                        context.path().pathType(origPathType);
+                    }
+
+                } else {
+                    // We might be in dynamically created field already, so need to clean withinNewMapper flag
+                    // and then restore it, so we wouldn't miss new mappers created from copy_to fields
+                    final boolean origWithinNewMapper = context
+                            .isWithinNewMapper();
+                    context.clearWithinNewMapper();
+                    try {
+                        context.docMapper()
+                                .root()
+                                .parseDynamicValue(context, field,
+                                        context.parser().currentToken());
+                    } finally {
+                        if (origWithinNewMapper) {
+                            context.setWithinNewMapper();
+                        } else {
+                            context.clearWithinNewMapper();
+                        }
+                    }
+
+                }
+            }
+        }
+
     }
 }
