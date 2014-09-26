@@ -52,57 +52,58 @@ public class MinHashPluginTest extends TestCase {
         runner.clean();
     }
 
-    public void test_runDynarank() throws Exception {
+    public void test_runEs() throws Exception {
 
         final String index = "test_index";
         final String type = "test_type";
 
-        // create an index
-        final String indexSettings = "{\"index\":{\"analysis\":{\"analyzer\":{"
-                + "\"minhash_analyzer\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhash\"]}"
-                + "},\"filter\":{"
-                + "\"my_minhash\":{\"type\":\"minhash\",\"seed\":1000}"
-                + "}}},"
-                + "\"dynarank\":{\"script_sort\":{\"lang\":\"native\",\"script\":\"dynarank_diversity_sort\",\"params\":{\"minhash_field\":\"minhash_value\",\"minhash_threshold\":0.95}},\"reorder_size\":20}"
-                + "}";
-        runner.createIndex(index,
-                ImmutableSettings.builder().loadFromSource(indexSettings)
-                        .build());
-        runner.ensureYellow(index);
+        { // create an index
+            final String indexSettings = "{\"index\":{\"analysis\":{\"analyzer\":{"
+                    + "\"minhash_analyzer\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhash\"]}"
+                    + "},\"filter\":{"
+                    + "\"my_minhash\":{\"type\":\"minhash\",\"seed\":1000}"
+                    + "}}},"
+                    + "\"dynarank\":{\"script_sort\":{\"lang\":\"native\",\"script\":\"dynarank_diversity_sort\",\"params\":{\"minhash_field\":\"minhash_value\",\"minhash_threshold\":0.95}},\"reorder_size\":20}"
+                    + "}";
+            runner.createIndex(index, ImmutableSettings.builder()
+                    .loadFromSource(indexSettings).build());
+            runner.ensureYellow(index);
 
-        // create a mapping
-        final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder()//
-                .startObject()//
-                .startObject(type)//
-                .startObject("properties")//
+            // create a mapping
+            final XContentBuilder mappingBuilder = XContentFactory
+                    .jsonBuilder()//
+                    .startObject()//
+                    .startObject(type)//
+                    .startObject("properties")//
 
-                // id
-                .startObject("id")//
-                .field("type", "string")//
-                .field("index", "not_analyzed")//
-                .endObject()//
+                    // id
+                    .startObject("id")//
+                    .field("type", "string")//
+                    .field("index", "not_analyzed")//
+                    .endObject()//
 
-                // msg
-                .startObject("msg")//
-                .field("type", "string")//
-                .field("copy_to", "minhash_value")//
-                .endObject()//
+                    // msg
+                    .startObject("msg")//
+                    .field("type", "string")//
+                    .field("copy_to", "minhash_value")//
+                    .endObject()//
 
-                // order
-                .startObject("order")//
-                .field("type", "long")//
-                .endObject()//
+                    // order
+                    .startObject("order")//
+                    .field("type", "long")//
+                    .endObject()//
 
-                // minhash
-                .startObject("minhash_value")//
-                .field("type", "minhash")//
-                .field("minhash_analyzer", "minhash_analyzer")//
-                .endObject()//
+                    // minhash
+                    .startObject("minhash_value")//
+                    .field("type", "minhash")//
+                    .field("minhash_analyzer", "minhash_analyzer")//
+                    .endObject()//
 
-                .endObject()//
-                .endObject()//
-                .endObject();
-        runner.createMapping(index, type, mappingBuilder);
+                    .endObject()//
+                    .endObject()//
+                    .endObject();
+            runner.createMapping(index, type, mappingBuilder);
+        }
 
         if (!runner.indexExists(index)) {
             fail();
@@ -276,85 +277,67 @@ public class MinHashPluginTest extends TestCase {
             assertEquals("89", hits[0].getSource().get("id"));
             assertEquals("90", hits[1].getSource().get("id"));
         }
-    }
 
-    private StringBuilder[] createTexts() {
-        final StringBuilder[] texts = new StringBuilder[100];
-        for (int i = 0; i < 100; i++) {
-            texts[i] = new StringBuilder();
+        assertTrue(runner.admin().indices().prepareDelete(index).execute()
+                .actionGet().isAcknowledged());
+
+        {
+            // create an index
+            final String indexSettings = "{\"index\":{\"analysis\":{\"analyzer\":{"
+                    + "\"minhash_analyzer1\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"minhash\"]},"
+                    + "\"minhash_analyzer2\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhashfilter1\"]},"
+                    + "\"minhash_analyzer3\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhashfilter2\"]}"
+                    + "},\"filter\":{"
+                    + "\"my_minhashfilter1\":{\"type\":\"minhash\",\"seed\":1000},"
+                    + "\"my_minhashfilter2\":{\"type\":\"minhash\",\"bit\":2,\"size\":32,\"seed\":1000}"
+                    + "}}}}";
+            runner.createIndex(index, ImmutableSettings.builder()
+                    .loadFromSource(indexSettings).build());
+            runner.ensureYellow(index);
+
+            // create a mapping
+            final XContentBuilder mappingBuilder = XContentFactory
+                    .jsonBuilder()//
+                    .startObject()//
+                    .startObject(type)//
+                    .startObject("properties")//
+
+                    // id
+                    .startObject("id")//
+                    .field("type", "string")//
+                    .field("index", "not_analyzed")//
+                    .endObject()//
+
+                    // msg
+                    .startObject("msg")//
+                    .field("type", "string")//
+                    .field("copy_to", "minhash_value1", "minhash_value2",
+                            "minhash_value3")//
+                    .endObject()//
+
+                    // minhash
+                    .startObject("minhash_value1")//
+                    .field("type", "minhash")//
+                    .field("minhash_analyzer", "minhash_analyzer1")//
+                    .endObject()//
+
+                    // minhash
+                    .startObject("minhash_value2")//
+                    .field("type", "minhash")//
+                    .field("minhash_analyzer", "minhash_analyzer2")//
+                    .endObject()//
+
+                    // minhash
+                    .startObject("minhash_value3")//
+                    .field("type", "minhash")//
+                    .field("minhash_analyzer", "minhash_analyzer3")//
+                    .endObject()//
+
+                    .endObject()//
+                    .endObject()//
+                    .endObject();
+            runner.createMapping(index, type, mappingBuilder);
         }
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < 100; j++) {
-                if (i - j >= 0) {
-                    texts[j].append(" aaa" + i);
-                } else {
-                    texts[j].append(" bbb" + i);
-                }
-            }
-        }
-        return texts;
-    }
-
-    public void test_runMultipleAnalyzer() throws Exception {
-
-        final String index = "test_index";
-        final String type = "test_type";
-
-        // create an index
-        final String indexSettings = "{\"index\":{\"analysis\":{\"analyzer\":{"
-                + "\"minhash_analyzer1\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"minhash\"]},"
-                + "\"minhash_analyzer2\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhashfilter1\"]},"
-                + "\"minhash_analyzer3\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"my_minhashfilter2\"]}"
-                + "},\"filter\":{"
-                + "\"my_minhashfilter1\":{\"type\":\"minhash\",\"seed\":1000},"
-                + "\"my_minhashfilter2\":{\"type\":\"minhash\",\"bit\":2,\"size\":32,\"seed\":1000}"
-                + "}}}}";
-        runner.createIndex(index,
-                ImmutableSettings.builder().loadFromSource(indexSettings)
-                        .build());
-        runner.ensureYellow(index);
-
-        // create a mapping
-        final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder()//
-                .startObject()//
-                .startObject(type)//
-                .startObject("properties")//
-
-                // id
-                .startObject("id")//
-                .field("type", "string")//
-                .field("index", "not_analyzed")//
-                .endObject()//
-
-                // msg
-                .startObject("msg")//
-                .field("type", "string")//
-                .field("copy_to", "minhash_value1", "minhash_value2",
-                        "minhash_value3")//
-                .endObject()//
-
-                // minhash
-                .startObject("minhash_value1")//
-                .field("type", "minhash")//
-                .field("minhash_analyzer", "minhash_analyzer1")//
-                .endObject()//
-
-                // minhash
-                .startObject("minhash_value2")//
-                .field("type", "minhash")//
-                .field("minhash_analyzer", "minhash_analyzer2")//
-                .endObject()//
-
-                // minhash
-                .startObject("minhash_value3")//
-                .field("type", "minhash")//
-                .field("minhash_analyzer", "minhash_analyzer3")//
-                .endObject()//
-
-                .endObject()//
-                .endObject()//
-                .endObject();
-        runner.createMapping(index, type, mappingBuilder);
 
         if (!runner.indexExists(index)) {
             fail();
@@ -388,6 +371,23 @@ public class MinHashPluginTest extends TestCase {
                         -52, 98, 25, 121, -56, 107 }, new byte[] { 91, -99,
                         105, 16, -5, -118, -14, -36 });
 
+    }
+
+    private StringBuilder[] createTexts() {
+        final StringBuilder[] texts = new StringBuilder[100];
+        for (int i = 0; i < 100; i++) {
+            texts[i] = new StringBuilder();
+        }
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 100; j++) {
+                if (i - j >= 0) {
+                    texts[j].append(" aaa" + i);
+                } else {
+                    texts[j].append(" bbb" + i);
+                }
+            }
+        }
+        return texts;
     }
 
     private void test_get(final Client client, final String index,
