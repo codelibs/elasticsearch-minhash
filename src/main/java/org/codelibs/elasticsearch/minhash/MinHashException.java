@@ -4,11 +4,11 @@ public class MinHashException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    public MinHashException(String message) {
+    public MinHashException(final String message) {
         super(message);
     }
 
-    public MinHashException(String message, Throwable cause) {
+    public MinHashException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
