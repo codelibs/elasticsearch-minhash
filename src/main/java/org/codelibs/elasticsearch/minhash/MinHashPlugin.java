@@ -7,10 +7,12 @@ import java.util.Collection;
 import org.codelibs.elasticsearch.minhash.index.analysis.MinHashTokenFilterFactory;
 import org.codelibs.elasticsearch.minhash.module.MinHashAnalysisModule;
 import org.codelibs.elasticsearch.minhash.module.MinHashIndexModule;
+import org.codelibs.elasticsearch.minhash.script.DiversitySortScript;
 import org.elasticsearch.common.collect.ImmutableList;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.index.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.script.ScriptModule;
 
 public class MinHashPlugin extends AbstractPlugin {
     @Override
@@ -31,6 +33,11 @@ public class MinHashPlugin extends AbstractPlugin {
 
     public void onModule(final AnalysisModule module) {
         module.addTokenFilter("minhash", MinHashTokenFilterFactory.class);
+    }
+
+    public void onModule(final ScriptModule module) {
+        module.registerScript(DiversitySortScript.SCRIPT_NAME,
+                DiversitySortScript.Factory.class);
     }
 
     @Override
