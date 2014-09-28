@@ -95,4 +95,33 @@ You can check it as below:
       }
     }
 
+## References
+
+### Change the number of bits and hashes
+
+To change the number of bits and hashes, set them to a token filter setting:
+
+    $ curl -XPUT 'localhost:9200/my_index' -d '{
+      "index":{
+        "analysis":{
+          "analyzer":{
+            "minhash_analyzer":{
+              "type":"custom",
+              "tokenizer":"standard",
+              "filter":["my_minhash"]
+            }
+          }
+        },
+        "filter":{
+          "my_minhash":{
+            "type":"minhash",
+            "seed":100,
+            "bit":2,
+            "size":32
+          }
+        }
+      }
+    }'
+
+The above is, the number of bits is 2, the number of hashes is 32 and a seed of hash is 100.
 
