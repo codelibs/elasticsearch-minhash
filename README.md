@@ -11,6 +11,7 @@ Using a field type and a token filter provided by this plugin, you can add a min
 | Taste     | Elasticsearch |
 |:---------:|:-------------:|
 | master    | 1.3.X         |
+| 1.3.0     | 1.3.2         |
 
 ### Issues/Questions
 
@@ -20,8 +21,6 @@ Please file an [issue](https://github.com/codelibs/elasticsearch-minhash/issues 
 ## Installation
 
 ### Install QRCache Plugin
-
-(TBD: not released yet...)
 
     $ $ES_HOME/bin/plugin --install org.codelibs/elasticsearch-minhash/1.3.0
 
