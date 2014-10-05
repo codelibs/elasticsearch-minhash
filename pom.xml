@@ -82,6 +82,10 @@
 									<pattern>com.google</pattern>
 									<shadedPattern>org.codelibs.elasticsearch.minhash.guava</shadedPattern>
 								</relocation>
+								<relocation>
+									<pattern>org.codelibs.minhash</pattern>
+									<shadedPattern>org.codelibs.elasticsearch.minhash.common</shadedPattern>
+								</relocation>
 							</relocations>
 						</configuration>
 					</execution>
@@ -111,6 +115,11 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>18.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codelibs</groupId>
+			<artifactId>minhash</artifactId>
+			<version>0.1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.elasticsearch</groupId>

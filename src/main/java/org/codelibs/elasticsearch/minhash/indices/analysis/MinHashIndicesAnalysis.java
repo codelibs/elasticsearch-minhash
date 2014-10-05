@@ -1,8 +1,8 @@
 package org.codelibs.elasticsearch.minhash.indices.analysis;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.codelibs.elasticsearch.minhash.MinHash;
-import org.codelibs.elasticsearch.minhash.index.analysis.MinHashTokenFilter;
+import org.codelibs.minhash.MinHash;
+import org.codelibs.minhash.analysis.MinHashTokenFilter;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;

@@ -12,7 +12,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.util.BytesRef;
-import org.codelibs.elasticsearch.minhash.MinHash;
+import org.codelibs.minhash.MinHash;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Base64;
@@ -238,7 +238,7 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             return;
         }
 
-        byte[] value = MinHash.calcMinHash(minhashAnalyzer, text);
+        byte[] value = MinHash.calculate(minhashAnalyzer, text);
         if (value == null) {
             return;
         }
