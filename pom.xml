@@ -27,8 +27,8 @@
         <version>7</version>
     </parent>
 	<properties>
-		<elasticsearch.version>1.3.2</elasticsearch.version>
-        <lucene.version>4.9.0</lucene.version>
+		<elasticsearch.version>1.3.4</elasticsearch.version>
+		<lucene.version>4.9.1</lucene.version>
 	</properties>
 	<build>
 		<plugins>
@@ -119,7 +119,7 @@
 		<dependency>
 			<groupId>org.codelibs</groupId>
 			<artifactId>minhash</artifactId>
-			<version>0.1.0-SNAPSHOT</version>
+			<version>0.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.elasticsearch</groupId>
