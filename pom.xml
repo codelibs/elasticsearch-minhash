@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.codelibs</groupId>
 	<artifactId>elasticsearch-minhash</artifactId>
-	<version>1.3.1-SNAPSHOT</version>
+	<version>1.4.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>This plugin provides b-bit minhash algorism.</description>
 	<inceptionYear>2011</inceptionYear>
@@ -27,8 +27,8 @@
         <version>7</version>
     </parent>
 	<properties>
-		<elasticsearch.version>1.3.2</elasticsearch.version>
-        <lucene.version>4.9.0</lucene.version>
+		<elasticsearch.version>1.4.0.Beta1</elasticsearch.version>
+		<lucene.version>4.10.1</lucene.version>
 	</properties>
 	<build>
 		<plugins>
@@ -119,7 +119,7 @@
 		<dependency>
 			<groupId>org.codelibs</groupId>
 			<artifactId>minhash</artifactId>
-			<version>0.1.0-SNAPSHOT</version>
+			<version>0.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.elasticsearch</groupId>
@@ -142,13 +142,13 @@
 		<dependency>
 			<groupId>org.codelibs</groupId>
 			<artifactId>elasticsearch-cluster-runner</artifactId>
-			<version>1.3.2.3</version>
+			<version>1.4.0.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.codelibs</groupId>
 			<artifactId>elasticsearch-dynarank</artifactId>
-			<version>1.3.0</version>
+			<version>1.4.0</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

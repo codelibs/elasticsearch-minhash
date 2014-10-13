@@ -247,13 +247,8 @@ public class MinHashFieldMapper extends AbstractFieldMapper<BytesReference> {
             final CopyBitsTo.Builder builder = new CopyBitsTo.Builder();
             builder.add(copyBitsTo);
             final CopyBitsTo copyBitsTo = builder.build();
-            final Object original = context.externalValue();
-            try {
-                context.externalValue(MinHash.toBinaryString(value));
-                copyBitsTo.parse(context);
-            } finally {
-                context.externalValue(original);
-            }
+            copyBitsTo.parse(context.createExternalValueContext(MinHash
+                    .toBinaryString(value)));
         }
 
         if (compress != null && compress
