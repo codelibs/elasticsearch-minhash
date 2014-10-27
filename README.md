@@ -10,7 +10,7 @@ Using a field type and a token filter provided by this plugin, you can add a min
 
 | Version   | Elasticsearch |
 |:---------:|:-------------:|
-| master    | 1.3.X         |
+| master    | 1.4.X         |
 | 1.4.0     | 1.4.0.Beta1   |
 | 1.3.0     | 1.3.2         |
 
