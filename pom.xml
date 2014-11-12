@@ -24,11 +24,11 @@
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
-        <version>7</version>
+        <version>9</version>
     </parent>
 	<properties>
-		<elasticsearch.version>1.4.0.Beta1</elasticsearch.version>
-		<lucene.version>4.10.1</lucene.version>
+		<elasticsearch.version>1.4.0</elasticsearch.version>
+		<lucene.version>4.10.2</lucene.version>
 	</properties>
 	<build>
 		<plugins>
