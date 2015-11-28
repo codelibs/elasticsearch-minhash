@@ -8,7 +8,7 @@ import org.elasticsearch.common.inject.assistedinject.Assisted;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
-import org.elasticsearch.index.settings.IndexSettings;
+import org.elasticsearch.index.settings.IndexSettingsService;
 
 import com.google.common.hash.HashFunction;
 
@@ -20,9 +20,9 @@ public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
 
     @Inject
     public MinHashTokenFilterFactory(final Index index,
-            @IndexSettings final Settings indexSettings,
+            final IndexSettingsService indexSettingsService,
             @Assisted final String name, @Assisted final Settings settings) {
-        super(index, indexSettings, name, settings);
+        super(index, indexSettingsService.getSettings(), name, settings);
 
         hashBit = settings.getAsInt("bit", 1);
         final int numOfHash = settings.getAsInt("size", 128);
