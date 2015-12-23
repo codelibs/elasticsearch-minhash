@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.codelibs.elasticsearch.minhash.index.analysis.MinHashTokenFilterFactory;
+import org.codelibs.elasticsearch.minhash.index.mapper.MinHashFieldMapper;
 import org.codelibs.elasticsearch.minhash.module.MinHashAnalysisModule;
-import org.codelibs.elasticsearch.minhash.module.MinHashIndexModule;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.analysis.AnalysisModule;
+import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.plugins.Plugin;
 
 public class MinHashPlugin extends Plugin {
@@ -33,10 +33,9 @@ public class MinHashPlugin extends Plugin {
         module.addTokenFilter("minhash", MinHashTokenFilterFactory.class);
     }
 
-    @Override
-    public Collection<Module> indexModules(Settings indexSettings) {
-        final Collection<Module> modules = new ArrayList<>();
-        modules.add(new MinHashIndexModule());
-        return modules;
+    public void onModule(IndicesModule indicesModule) {
+        indicesModule.registerMapper("minhash",
+                new MinHashFieldMapper.TypeParser());
     }
+
 }
