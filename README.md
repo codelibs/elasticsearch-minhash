@@ -10,7 +10,8 @@ Using a field type and a token filter provided by this plugin, you can add a min
 
 | Version   | Elasticsearch |
 |:---------:|:-------------:|
-| master    | 1.4.X         |
+| master    | 2.1.X         |
+| 2.1.0     | 2.1.1         |
 | 1.4.1     | 1.4.0.Beta1   |
 | 1.3.0     | 1.3.2         |
 
@@ -23,7 +24,7 @@ Please file an [issue](https://github.com/codelibs/elasticsearch-minhash/issues 
 
 ### Install QRCache Plugin
 
-    $ $ES_HOME/bin/plugin --install org.codelibs/elasticsearch-minhash/1.4.1
+    $ $ES_HOME/bin/plugin install org.codelibs/elasticsearch-minhash/2.1.0
 
 ## Getting Started
 
