@@ -69,7 +69,7 @@ public class MinHashFieldMapper extends FieldMapper {
         private String copyBitsTo;
 
         public Builder(String name) {
-            super(name, Defaults.FIELD_TYPE);
+            super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
             builder = this;
         }
 
