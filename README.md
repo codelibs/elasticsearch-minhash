@@ -24,7 +24,7 @@ Please file an [issue](https://github.com/codelibs/elasticsearch-minhash/issues 
 
 ## Installation
 
-### Install QRCache Plugin
+### Install MinHash Plugin
 
     $ $ES_HOME/bin/plugin install org.codelibs/elasticsearch-minhash/2.3.0
 
