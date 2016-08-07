@@ -4,6 +4,8 @@ import static org.elasticsearch.index.mapper.core.TypeParsers.parseField;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -214,17 +216,26 @@ public class MinHashFieldMapper extends FieldMapper {
         this.minhashAnalyzer = minhashAnalyzer;
         this.copyBitsTo = copyBitsTo;
 
-        try {
-            Class<?> docParserClazz = FieldMapper.class.getClassLoader()
-                    .loadClass("org.elasticsearch.index.mapper.DocumentParser");
-            parseCopyMethod = docParserClazz.getDeclaredMethod("parseCopy",
-                    new Class[] { String.class, ParseContext.class });
-            parseCopyMethod.setAccessible(true);
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Failed to access DocumentParser#parseCopy(String, ParseContext).",
-                    e);
-        }
+        parseCopyMethod = AccessController
+                .doPrivileged(new PrivilegedAction<Method>() {
+                    @Override
+                    public Method run() {
+                        try {
+                            Class<?> docParserClazz = FieldMapper.class
+                                    .getClassLoader().loadClass(
+                                            "org.elasticsearch.index.mapper.DocumentParser");
+                            Method method = docParserClazz.getDeclaredMethod(
+                                    "parseCopy", new Class[] { String.class,
+                                            ParseContext.class });
+                            method.setAccessible(true);
+                            return method;
+                        } catch (Exception e) {
+                            throw new IllegalStateException(
+                                    "Failed to access DocumentParser#parseCopy(String, ParseContext).",
+                                    e);
+                        }
+                    }
+                });
     }
 
     @Override
