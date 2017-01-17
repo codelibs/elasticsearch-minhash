@@ -3,12 +3,10 @@ package org.codelibs.elasticsearch.minhash.index.analysis;
 import org.apache.lucene.analysis.TokenStream;
 import org.codelibs.minhash.MinHash;
 import org.codelibs.minhash.analysis.MinHashTokenFilter;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.assistedinject.Assisted;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
-import org.elasticsearch.index.settings.IndexSettingsService;
 
 import com.google.common.hash.HashFunction;
 
@@ -18,11 +16,8 @@ public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
 
     private HashFunction[] hashFunctions;
 
-    @Inject
-    public MinHashTokenFilterFactory(final Index index,
-            final IndexSettingsService indexSettingsService,
-            @Assisted final String name, @Assisted final Settings settings) {
-        super(index, indexSettingsService.getSettings(), name, settings);
+    public MinHashTokenFilterFactory(IndexSettings indexSettings, Environment environment, String name, Settings settings) {
+        super(indexSettings, name, settings);
 
         hashBit = settings.getAsInt("bit", 1);
         final int numOfHash = settings.getAsInt("size", 128);
@@ -31,9 +26,7 @@ public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
         hashFunctions = MinHash.createHashFunctions(seed, numOfHash);
 
         if (logger.isDebugEnabled()) {
-            logger.debug(
-                    "Index:{} -> {}-bit minhash with {} murmur3({}) functions.",
-                    index.name(), hashBit, numOfHash, seed);
+            logger.debug("Index:{} -> {}-bit minhash with {} murmur3({}) functions.", indexSettings.getIndex(), hashBit, numOfHash, seed);
         }
     }
 

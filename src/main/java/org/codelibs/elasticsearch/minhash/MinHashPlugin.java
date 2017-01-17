@@ -1,41 +1,29 @@
 package org.codelibs.elasticsearch.minhash;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.codelibs.elasticsearch.minhash.index.analysis.MinHashTokenFilterFactory;
 import org.codelibs.elasticsearch.minhash.index.mapper.MinHashFieldMapper;
-import org.codelibs.elasticsearch.minhash.module.MinHashAnalysisModule;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.index.analysis.AnalysisModule;
-import org.elasticsearch.indices.IndicesModule;
+import org.elasticsearch.index.analysis.TokenFilterFactory;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.indices.analysis.AnalysisModule.AnalysisProvider;
+import org.elasticsearch.plugins.AnalysisPlugin;
+import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-public class MinHashPlugin extends Plugin {
-    @Override
-    public String name() {
-        return "MinHashPlugin";
-    }
+public class MinHashPlugin extends Plugin implements MapperPlugin, AnalysisPlugin {
 
     @Override
-    public String description() {
-        return "This plugin provides b-bit minhash algorism.";
+    public Map<String, AnalysisProvider<TokenFilterFactory>> getTokenFilters() {
+        Map<String, AnalysisProvider<TokenFilterFactory>> extra = new HashMap<>();
+        extra.put("minhash", MinHashTokenFilterFactory::new);
+        return extra;
     }
 
     @Override
-    public Collection<Module> nodeModules() {
-        ArrayList<Module> modules = new ArrayList<>();
-        modules.add(new MinHashAnalysisModule());
-        return modules;
+    public Map<String, Mapper.TypeParser> getMappers() {
+        return Collections.<String, Mapper.TypeParser> singletonMap(MinHashFieldMapper.CONTENT_TYPE, new MinHashFieldMapper.TypeParser());
     }
-
-    public void onModule(final AnalysisModule module) {
-        module.addTokenFilter("minhash", MinHashTokenFilterFactory.class);
-    }
-
-    public void onModule(IndicesModule indicesModule) {
-        indicesModule.registerMapper("minhash",
-                new MinHashFieldMapper.TypeParser());
-    }
-
 }

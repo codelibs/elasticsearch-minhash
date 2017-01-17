@@ -5,6 +5,7 @@ import static org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner.newCo
 import java.util.Map;
 
 import org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner;
+import org.elasticsearch.action.DocWriteResponse.Result;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
@@ -15,6 +16,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.get.GetField;
 import org.junit.Assert;
+
+import com.google.common.collect.Lists;
 
 import junit.framework.TestCase;
 
@@ -35,14 +38,9 @@ public class MinHashPluginTest extends TestCase {
             public void build(final int number, final Builder settingsBuilder) {
                 settingsBuilder.put("http.cors.enabled", true);
                 settingsBuilder.put("http.cors.allow-origin", "*");
-                settingsBuilder.put("index.number_of_shards", 3);
-                settingsBuilder.put("index.number_of_replicas", 0);
                 settingsBuilder.putArray("discovery.zen.ping.unicast.hosts", "localhost:9301-9310");
-                settingsBuilder.put("plugin.types",
-                        "org.codelibs.elasticsearch.minhash.MinHashPlugin");
-                settingsBuilder.put("index.unassigned.node_left.delayed_timeout", "0");
             }
-        }).build(newConfigs().clusterName(clusterName).numOfNode(1));
+        }).build(newConfigs().clusterName(clusterName).numOfNode(1).pluginTypes("org.codelibs.elasticsearch.minhash.MinHashPlugin"));
 
         // wait for yellow status
         runner.ensureYellow();
@@ -91,8 +89,7 @@ public class MinHashPluginTest extends TestCase {
                     // msg
                     .startObject("msg")//
                     .field("type", "string")//
-                    .field("copy_to", "minhash_value1", "minhash_value2",
-                            "minhash_value3")//
+                    .field("copy_to", Lists.newArrayList("minhash_value1", "minhash_value2", "minhash_value3"))//
                     .endObject()//
 
                     // bits
@@ -135,7 +132,7 @@ public class MinHashPluginTest extends TestCase {
             final IndexResponse indexResponse1 = runner.insert(index, type,
                     String.valueOf(i), "{\"id\":\"" + i + "\",\"msg\":\"test "
                             + i % 100 + "\"}");
-            assertTrue(indexResponse1.isCreated());
+            assertEquals(Result.CREATED, indexResponse1.getResult());
         }
         runner.refresh();
 
@@ -163,10 +160,9 @@ public class MinHashPluginTest extends TestCase {
     private void test_get(final Client client, final String index,
             final String type, final String id, final byte[] hash1,
             final byte[] hash2, final byte[] hash3) {
-        final GetResponse response = client
-                .prepareGet(index, type, id)
-                .setFields("_source", "minhash_value1", "minhash_value2",
-                        "minhash_value3").execute().actionGet();
+        final GetResponse response = client.prepareGet(index, type, id)
+                .setFetchSource(new String[] { "_source", "minhash_value1", "minhash_value2", "minhash_value3" }, null).execute()
+                .actionGet();
         assertTrue(response.isExists());
         final Map<String, Object> source = response.getSourceAsMap();
         assertEquals("test " + Integer.parseInt(id) % 100, source.get("msg"));
