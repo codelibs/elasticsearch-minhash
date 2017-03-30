@@ -14,6 +14,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.get.GetField;
 import org.junit.Assert;
 
@@ -70,7 +71,7 @@ public class MinHashPluginTest extends TestCase {
                     + "\"my_minhashfilter2\":{\"type\":\"minhash\",\"bit\":2,\"size\":32,\"seed\":1000}"
                     + "}}}}";
             runner.createIndex(index, Settings.builder()
-                    .loadFromSource(indexSettings).build());
+                    .loadFromSource(indexSettings, XContentType.JSON).build());
             runner.ensureYellow(index);
 
             // create a mapping
@@ -161,7 +162,7 @@ public class MinHashPluginTest extends TestCase {
             final String type, final String id, final byte[] hash1,
             final byte[] hash2, final byte[] hash3) {
         final GetResponse response = client.prepareGet(index, type, id)
-                .setFetchSource(new String[] { "_source", "minhash_value1", "minhash_value2", "minhash_value3" }, null).execute()
+                .setStoredFields(new String[] { "_source", "minhash_value1", "minhash_value2", "minhash_value3" }).execute()
                 .actionGet();
         assertTrue(response.isExists());
         final Map<String, Object> source = response.getSourceAsMap();
