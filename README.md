@@ -10,7 +10,8 @@ Using a field type and a token filter provided by this plugin, you can add a min
 
 | Version   | Elasticsearch |
 |:---------:|:-------------:|
-| master    | 2.3.X         |
+| master    | 5.3.X         |
+| 5.3.0     | 5.3.0         |
 | 2.3.1     | 2.3.5         |
 | 2.2.0     | 2.2.0         |
 | 2.1.0     | 2.1.1         |
@@ -24,7 +25,11 @@ Please file an [issue](https://github.com/codelibs/elasticsearch-minhash/issues 
 
 ## Installation
 
-### Install MinHash Plugin
+### For 5.x
+
+    $ $ES_HOME/bin/elasticsearch-plugin install org.codelibs:elasticsearch-minhash:5.3.0
+
+### For 2.x
 
     $ $ES_HOME/bin/plugin install org.codelibs/elasticsearch-minhash/2.3.1
 
