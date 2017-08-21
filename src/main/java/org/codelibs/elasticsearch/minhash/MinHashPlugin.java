@@ -17,7 +17,7 @@ public class MinHashPlugin extends Plugin implements MapperPlugin, AnalysisPlugi
 
     @Override
     public Map<String, AnalysisProvider<TokenFilterFactory>> getTokenFilters() {
-        Map<String, AnalysisProvider<TokenFilterFactory>> extra = new HashMap<>();
+        final Map<String, AnalysisProvider<TokenFilterFactory>> extra = new HashMap<>();
         extra.put("minhash", MinHashTokenFilterFactory::new);
         return extra;
     }

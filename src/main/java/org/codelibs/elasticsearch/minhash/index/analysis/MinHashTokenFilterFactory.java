@@ -12,11 +12,11 @@ import com.google.common.hash.HashFunction;
 
 public class MinHashTokenFilterFactory extends AbstractTokenFilterFactory {
 
-    private int hashBit;
+    private final int hashBit;
 
-    private HashFunction[] hashFunctions;
+    private final HashFunction[] hashFunctions;
 
-    public MinHashTokenFilterFactory(IndexSettings indexSettings, Environment environment, String name, Settings settings) {
+    public MinHashTokenFilterFactory(final IndexSettings indexSettings, final Environment environment, final String name, final Settings settings) {
         super(indexSettings, name, settings);
 
         hashBit = settings.getAsInt("bit", 1);

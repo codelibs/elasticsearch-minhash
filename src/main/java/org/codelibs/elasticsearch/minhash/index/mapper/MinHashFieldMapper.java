@@ -70,13 +70,13 @@ public class MinHashFieldMapper extends FieldMapper {
 
         private CopyBitsTo copyBitsTo;
 
-        public Builder(String name) {
+        public Builder(final String name) {
             super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
             builder = this;
         }
 
         @Override
-        public MinHashFieldMapper build(BuilderContext context) {
+        public MinHashFieldMapper build(final BuilderContext context) {
             setupFieldType(context);
             return new MinHashFieldMapper(name, fieldType, defaultFieldType,
                     context.indexSettings(),
@@ -97,16 +97,16 @@ public class MinHashFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node,
-                ParserContext parserContext) throws MapperParsingException {
-            MinHashFieldMapper.Builder builder = new MinHashFieldMapper.Builder(
+        public Mapper.Builder parse(final String name, final Map<String, Object> node,
+                final ParserContext parserContext) throws MapperParsingException {
+            final MinHashFieldMapper.Builder builder = new MinHashFieldMapper.Builder(
                     name);
             parseField(builder, name, node, parserContext);
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet()
+            for (final Iterator<Map.Entry<String, Object>> iterator = node.entrySet()
                     .iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String propName = entry.getKey();
-                Object propNode = entry.getValue();
+                final Map.Entry<String, Object> entry = iterator.next();
+                final String propName = entry.getKey();
+                final Object propNode = entry.getValue();
                 if (propName.equals("minhash_analyzer") && propNode != null) {
                     final NamedAnalyzer analyzer = parserContext
                             .getIndexAnalyzers().get(propNode.toString());
@@ -122,10 +122,10 @@ public class MinHashFieldMapper extends FieldMapper {
         }
     }
 
-    public static void parseCopyBitsFields(Object propNode, Builder builder) {
-        CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
+    public static void parseCopyBitsFields(final Object propNode, final Builder builder) {
+        final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
         if (isArray(propNode)) {
-            for (Object node : (List<Object>) propNode) {
+            for (final Object node : (List<Object>) propNode) {
                 copyToBuilder.add(nodeStringValue(node, null));
             }
         } else {
@@ -139,7 +139,7 @@ public class MinHashFieldMapper extends FieldMapper {
         public MinHashFieldType() {
         }
 
-        protected MinHashFieldType(MinHashFieldType ref) {
+        protected MinHashFieldType(final MinHashFieldType ref) {
             super(ref);
         }
 
@@ -154,7 +154,7 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public BytesReference valueForDisplay(Object value) {
+        public BytesReference valueForDisplay(final Object value) {
             if (value == null) {
                 return null;
             }
@@ -180,16 +180,16 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query termQuery(Object value, QueryShardContext context) {
+        public Query termQuery(final Object value, final QueryShardContext context) {
             throw new QueryShardException(context,
                     "MinHash fields do not support searching");
         }
     }
 
-    protected MinHashFieldMapper(String simpleName, MappedFieldType fieldType,
-            MappedFieldType defaultFieldType, Settings indexSettings,
-            MultiFields multiFields, CopyTo copyTo,
-            NamedAnalyzer minhashAnalyzer, CopyBitsTo copyBitsTo) {
+    protected MinHashFieldMapper(final String simpleName, final MappedFieldType fieldType,
+            final MappedFieldType defaultFieldType, final Settings indexSettings,
+            final MultiFields multiFields, final CopyTo copyTo,
+            final NamedAnalyzer minhashAnalyzer, final CopyBitsTo copyBitsTo) {
         super(simpleName, fieldType, defaultFieldType, indexSettings,
                 multiFields, copyTo);
         this.minhashAnalyzer = minhashAnalyzer;
@@ -197,13 +197,13 @@ public class MinHashFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context,
-            List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(final ParseContext context,
+            final List<IndexableField> fields) throws IOException {
         String value;
         if (context.externalValueSet()) {
             value = context.externalValue().toString();
         } else {
-            XContentParser parser = context.parser();
+            final XContentParser parser = context.parser();
             if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
                 value = fieldType().nullValueAsString();
             } else {
@@ -215,7 +215,7 @@ public class MinHashFieldMapper extends FieldMapper {
             return;
         }
 
-        byte[] minhashValue = MinHash.calculate(minhashAnalyzer, value);
+        final byte[] minhashValue = MinHash.calculate(minhashAnalyzer, value);
         if (fieldType().stored()) {
             fields.add(
                     new Field(fieldType().name(), minhashValue, fieldType()));
@@ -243,10 +243,10 @@ public class MinHashFieldMapper extends FieldMapper {
 
     /** Creates instances of the fields that the current field should be copied to */
     private static void parseCopyBitsFields(ParseContext context,
-            List<String> copyToFields) throws IOException {
+            final List<String> copyToFields) throws IOException {
         if (!context.isWithinCopyTo() && copyToFields.isEmpty() == false) {
             context = context.createCopyToContext();
-            for (String field : copyToFields) {
+            for (final String field : copyToFields) {
                 // In case of a hierarchy of nested documents, we need to figure out
                 // which document the field should go to
                 ParseContext.Document targetDoc = null;
@@ -270,9 +270,9 @@ public class MinHashFieldMapper extends FieldMapper {
     }
 
     /** Creates an copy of the current field with given field name and boost */
-    private static void parseCopy(String field, ParseContext context)
+    private static void parseCopy(final String field, final ParseContext context)
             throws IOException {
-        FieldMapper fieldMapper = context.docMapper().mappers()
+        final FieldMapper fieldMapper = context.docMapper().mappers()
                 .getMapper(field);
         if (fieldMapper != null) {
             fieldMapper.parse(context);
@@ -285,14 +285,15 @@ public class MinHashFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(Mapper mergeWith, boolean updateAllTypes) {
+    protected void doMerge(final Mapper mergeWith, final boolean updateAllTypes) {
         super.doMerge(mergeWith, updateAllTypes);
         this.minhashAnalyzer = ((MinHashFieldMapper) mergeWith).minhashAnalyzer;
         this.copyBitsTo = ((MinHashFieldMapper) mergeWith).copyBitsTo;
     }
 
-    protected void doXContentBody(XContentBuilder builder,
-            boolean includeDefaults, Params params) throws IOException {
+    @Override
+    protected void doXContentBody(final XContentBuilder builder,
+            final boolean includeDefaults, final Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
         builder.field("minhash_analyzer", minhashAnalyzer.name());
         if (copyBitsTo != null) {
@@ -314,13 +315,13 @@ public class MinHashFieldMapper extends FieldMapper {
 
         private final String name;
 
-        public CustomMinHashDocValuesField(String name, byte[] bytes) {
+        public CustomMinHashDocValuesField(final String name, final byte[] bytes) {
             this.name = name;
             bytesList = new ObjectArrayList<>();
             add(bytes);
         }
 
-        public void add(byte[] bytes) {
+        public void add(final byte[] bytes) {
             bytesList.add(bytes);
             totalSize += bytes.length;
         }
@@ -329,18 +330,18 @@ public class MinHashFieldMapper extends FieldMapper {
         public BytesRef binaryValue() {
             try {
                 CollectionUtils.sortAndDedup(bytesList);
-                int size = bytesList.size();
+                final int size = bytesList.size();
                 final byte[] bytes = new byte[totalSize + (size + 1) * 5];
-                ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
+                final ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
                 out.writeVInt(size); // write total number of values
                 for (int i = 0; i < size; i++) {
                     final byte[] value = bytesList.get(i);
-                    int valueLength = value.length;
+                    final int valueLength = value.length;
                     out.writeVInt(valueLength);
                     out.writeBytes(value, 0, valueLength);
                 }
                 return new BytesRef(bytes, 0, out.getPosition());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ElasticsearchException("Failed to get MinHash value",
                         e);
             }
@@ -378,7 +379,7 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public TokenStream tokenStream(Analyzer analyzer, TokenStream reuse) {
+        public TokenStream tokenStream(final Analyzer analyzer, final TokenStream reuse) {
             return null;
         }
     }
@@ -387,15 +388,15 @@ public class MinHashFieldMapper extends FieldMapper {
 
         private final List<String> copyBitsToFields;
 
-        private CopyBitsTo(List<String> copyBitsToFields) {
+        private CopyBitsTo(final List<String> copyBitsToFields) {
             this.copyBitsToFields = copyBitsToFields;
         }
 
-        public XContentBuilder toXContent(XContentBuilder builder,
-                Params params) throws IOException {
+        public XContentBuilder toXContent(final XContentBuilder builder,
+                final Params params) throws IOException {
             if (!copyBitsToFields.isEmpty()) {
                 builder.startArray("copy_bits_to");
-                for (String field : copyBitsToFields) {
+                for (final String field : copyBitsToFields) {
                     builder.value(field);
                 }
                 builder.endArray();
@@ -406,7 +407,7 @@ public class MinHashFieldMapper extends FieldMapper {
         public static class Builder {
             private final List<String> copyBitsToBuilders = new ArrayList<>();
 
-            public Builder add(String field) {
+            public Builder add(final String field) {
                 copyBitsToBuilders.add(field);
                 return this;
             }
