@@ -10,12 +10,12 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.get.GetField;
 import org.junit.Assert;
 
 import com.google.common.collect.Lists;
@@ -83,19 +83,18 @@ public class MinHashPluginTest extends TestCase {
 
                     // id
                     .startObject("id")//
-                    .field("type", "string")//
-                    .field("index", "not_analyzed")//
+                    .field("type", "keyword")//
                     .endObject()//
 
                     // msg
                     .startObject("msg")//
-                    .field("type", "string")//
+                    .field("type", "text")//
                     .field("copy_to", Lists.newArrayList("minhash_value1", "minhash_value2", "minhash_value3"))//
                     .endObject()//
 
                     // bits
                     .startObject("bits")//
-                    .field("type", "string")//
+                    .field("type", "keyword")//
                     .field("store", true)//
                     .endObject()//
 
@@ -168,17 +167,17 @@ public class MinHashPluginTest extends TestCase {
         final Map<String, Object> source = response.getSourceAsMap();
         assertEquals("test " + Integer.parseInt(id) % 100, source.get("msg"));
 
-        final GetField field1 = response.getField("minhash_value1");
+        final DocumentField field1 = response.getField("minhash_value1");
         final BytesArray value1 = (BytesArray) field1.getValue();
         assertEquals(hash1.length, value1.length());
         Assert.assertArrayEquals(hash1, value1.array());
 
-        final GetField field2 = response.getField("minhash_value2");
+        final DocumentField field2 = response.getField("minhash_value2");
         final BytesArray value2 = (BytesArray) field2.getValue();
         assertEquals(hash2.length, value2.length());
         Assert.assertArrayEquals(hash2, value2.array());
 
-        final GetField field3 = response.getField("minhash_value3");
+        final DocumentField field3 = response.getField("minhash_value3");
         final BytesArray value3 = (BytesArray) field3.getValue();
         assertEquals(hash3.length, value3.length());
         Assert.assertArrayEquals(hash3, value3.array());

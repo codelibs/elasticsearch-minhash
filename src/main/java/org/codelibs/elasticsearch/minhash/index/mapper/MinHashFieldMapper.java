@@ -359,11 +359,6 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public float boost() {
-            return 1f;
-        }
-
-        @Override
         public String stringValue() {
             return null;
         }
