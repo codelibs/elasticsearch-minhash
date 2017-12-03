@@ -27,11 +27,11 @@
         <version>9</version>
     </parent>
 	<properties>
-		<elasticsearch.version>6.0.0-rc1</elasticsearch.version>
+		<elasticsearch.version>6.0.0</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<lucene.version>7.0.0</lucene.version>
+		<lucene.version>7.0.1</lucene.version>
 		<log4j.version>2.9.1</log4j.version>
 	</properties>
 	<build>
@@ -119,7 +119,7 @@
 		<dependency>
 			<groupId>org.codelibs</groupId>
 			<artifactId>elasticsearch-cluster-runner</artifactId>
-			<version>6.0.0.0-rc1</version>
+			<version>${elasticsearch.version}.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
