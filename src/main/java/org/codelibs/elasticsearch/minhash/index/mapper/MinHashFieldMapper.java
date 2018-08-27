@@ -38,6 +38,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.BytesBinaryDVIndexFieldData;
+import org.elasticsearch.index.mapper.FieldAliasMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -285,10 +286,16 @@ public class MinHashFieldMapper extends FieldMapper {
     /** Creates an copy of the current field with given field name and boost */
     private static void parseCopy(final String field, final ParseContext context)
             throws IOException {
-        final FieldMapper fieldMapper = context.docMapper().mappers()
-                .getMapper(field);
-        if (fieldMapper != null) {
-            fieldMapper.parse(context);
+        Mapper mapper = context.docMapper().mappers().getMapper(field);
+        if (mapper != null) {
+            if (mapper instanceof FieldMapper) {
+                ((FieldMapper) mapper).parse(context);
+            } else if (mapper instanceof FieldAliasMapper) {
+                throw new IllegalArgumentException("Cannot copy to a field alias [" + mapper.name() + "].");
+            } else {
+                throw new IllegalStateException("The provided mapper [" + mapper.name() +
+                    "] has an unrecognized type [" + mapper.getClass().getSimpleName() + "].");
+            }
         }
     }
 
