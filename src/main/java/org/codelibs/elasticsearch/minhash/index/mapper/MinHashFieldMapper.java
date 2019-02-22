@@ -305,8 +305,8 @@ public class MinHashFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doMerge(final Mapper mergeWith, final boolean updateAllTypes) {
-        super.doMerge(mergeWith, updateAllTypes);
+    protected void doMerge(final Mapper mergeWith) {
+        super.doMerge(mergeWith);
         this.minhashAnalyzer = ((MinHashFieldMapper) mergeWith).minhashAnalyzer;
         this.copyBitsTo = ((MinHashFieldMapper) mergeWith).copyBitsTo;
     }
