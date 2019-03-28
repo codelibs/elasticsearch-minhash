@@ -27,11 +27,11 @@
         <version>9</version>
     </parent>
 	<properties>
-		<elasticsearch.version>7.0.0-beta1</elasticsearch.version>
+		<elasticsearch.version>7.0.0-rc1</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<lucene.version>8.0.0-snapshot-83f9835</lucene.version>
+		<lucene.version>8.0.0</lucene.version>
 		<log4j.version>2.11.1</log4j.version>
 	</properties>
 	<build>
@@ -152,17 +152,4 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<repositories>
-		<repository>
-			<id>elastic-lucene-snapshots</id>
-			<name>Elastic Lucene Snapshots</name>
-			<url>http://s3.amazonaws.com/download.elasticsearch.org/lucenesnapshots/83f9835</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
 </project>
