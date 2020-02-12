@@ -8,7 +8,7 @@ Using a field type and a token filter provided by this plugin, you can add a min
 
 ## Version
 
-[Versions in Maven Repository](http://central.maven.org/maven2/org/codelibs/elasticsearch-minhash/)
+[Versions in Maven Repository](https://repo1.maven.org/maven2/org/codelibs/elasticsearch-minhash/)
 
 ### Issues/Questions
 
