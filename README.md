@@ -13,17 +13,10 @@ Using a field type and a token filter provided by this plugin, you can add a min
 ### Issues/Questions
 
 Please file an [issue](https://github.com/codelibs/elasticsearch-minhash/issues "issue").
-(Japanese forum is [here](https://github.com/codelibs/codelibs-ja-forum "here").)
 
 ## Installation
 
-### For Elasticsearch 5.x
-
-    $ $ES_HOME/bin/elasticsearch-plugin install org.codelibs:elasticsearch-minhash:5.3.0
-
-### For Elasticsearch 2.x
-
-    $ $ES_HOME/bin/plugin install org.codelibs/elasticsearch-minhash/2.3.1
+    $ $ES_HOME/bin/elasticsearch-plugin install org.codelibs:elasticsearch-minhash:7.8.0
 
 ## Getting Started
 
