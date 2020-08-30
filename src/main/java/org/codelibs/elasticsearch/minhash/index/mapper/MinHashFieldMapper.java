@@ -66,10 +66,13 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         private final Parameter<String> minhashAnalyzer = Parameter.stringParam(
                 "minhash_analyzer", true,
                 m -> toType(m).minhashAnalyzer.name(), null);
-        private final Parameter<String[]> copyBitsTo = new Parameter<>("copy_bits_to",
-                true, null, (n, o) -> parseCopyBitsFields(o),
-                m -> toType(m).copyBitsTo.copyBitsToFields()
-                        .toArray(n -> new String[n]));
+        private final Parameter<String[]> copyBitsTo = new Parameter<>(
+                "copy_bits_to", true, null, (n, o) -> parseCopyBitsFields(o),
+                m -> {
+                    List<String> fieldList = toType(m).copyBitsTo
+                            .copyBitsToFields();
+                    return fieldList.toArray(new String[fieldList.size()]);
+                });
         private ParserContext parserContext;
 
         public Builder(String name) {
