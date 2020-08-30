@@ -58,7 +58,7 @@ public class MinHashPluginTest extends TestCase {
     public void test_runEs() throws Exception {
 
         final String index = "test_index";
-        final String type = "test_type";
+        final String type = "_doc";
 
         {
             // create an index

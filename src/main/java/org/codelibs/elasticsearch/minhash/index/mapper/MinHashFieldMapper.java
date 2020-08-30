@@ -2,25 +2,17 @@ package org.codelibs.elasticsearch.minhash.index.mapper;
 
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.isArray;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
-import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
 import java.io.IOException;
-import java.io.Reader;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.DocValuesType;
-import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.IndexableFieldType;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.Query;
@@ -31,131 +23,124 @@ import org.codelibs.minhash.MinHash;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.plain.BytesBinaryDVIndexFieldData;
+import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
+import org.elasticsearch.index.mapper.CustomDocValuesField;
 import org.elasticsearch.index.mapper.FieldAliasMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.Mapper.TypeParser.ParserContext;
 import org.elasticsearch.index.mapper.MapperParsingException;
+import org.elasticsearch.index.mapper.ParametrizedFieldMapper;
 import org.elasticsearch.index.mapper.ParseContext;
+import org.elasticsearch.index.mapper.TextSearchInfo;
+import org.elasticsearch.index.mapper.TypeParsers;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
+import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 
-public class MinHashFieldMapper extends FieldMapper {
+public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
     public static final String CONTENT_TYPE = "minhash";
-
-    private NamedAnalyzer minhashAnalyzer;
-
-    private CopyBitsTo copyBitsTo;
-
-    public static class Defaults {
-        public static final MappedFieldType FIELD_TYPE = new MinHashFieldType();
-
-        static {
-            FIELD_TYPE.setIndexOptions(IndexOptions.NONE);
-            FIELD_TYPE.setStored(true);
-            FIELD_TYPE.freeze();
-        }
+    
+    private static MinHashFieldMapper toType(FieldMapper in) {
+        return (MinHashFieldMapper) in;
     }
 
-    public static class Builder
-            extends FieldMapper.Builder<Builder, MinHashFieldMapper> {
+    public static class Builder extends ParametrizedFieldMapper.Builder {
 
-        private NamedAnalyzer minhashAnalyzer;
+        private final Parameter<Boolean> stored = Parameter.boolParam("store", false, m -> toType(m).stored, true);
+        private final Parameter<Boolean> hasDocValues = Parameter.boolParam("doc_values", false, m -> toType(m).hasDocValues,  false);
+        private final Parameter<String> nullValue = Parameter.stringParam("null_value", false, m->toType(m).nullValue, null);
+        private final Parameter<Map<String, String>> meta
+            = new Parameter<>("meta", true, Collections.emptyMap(), TypeParsers::parseMeta, m -> m.fieldType().meta());
+        private final Parameter<String> minhashAnalyzer = Parameter.stringParam(
+                "minhash_analyzer", true,
+                m -> toType(m).minhashAnalyzer.name(), null);
+        private final Parameter<String[]> copyBitsTo = new Parameter<>("copy_bits_to",
+                true, null, (n, o) -> parseCopyBitsFields(o),
+                m -> toType(m).copyBitsTo.copyBitsToFields()
+                        .toArray(n -> new String[n]));
+        private ParserContext parserContext;
 
-        private CopyBitsTo copyBitsTo;
+        public Builder(String name) {
+            this(name, null, false);
+        }
 
-        public Builder(final String name) {
-            super(name, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
-            builder = this;
+        public Builder(String name, ParserContext parserContext, boolean hasDocValues) {
+            super(name);
+            this.parserContext = parserContext;
+            this.hasDocValues.setValue(hasDocValues);
         }
 
         @Override
-        public MinHashFieldMapper build(final BuilderContext context) {
-            setupFieldType(context);
-            return new MinHashFieldMapper(name, fieldType, defaultFieldType,
-                    context.indexSettings(),
-                    multiFieldsBuilder.build(this, context), copyTo,
-                    minhashAnalyzer, copyBitsTo);
+        public List<Parameter<?>> getParameters() {
+            return Arrays.asList(meta, stored, hasDocValues, nullValue, minhashAnalyzer, copyBitsTo);
         }
 
-        public Builder minhashAnalyzer(final NamedAnalyzer minhashAnalyzer) {
-            this.minhashAnalyzer = minhashAnalyzer;
-            return builder;
+        @Override
+        public Builder init(FieldMapper initializer) {
+            super.init(initializer);
+            return this;
         }
 
-        public Builder copyBitsTo(final CopyBitsTo copyBitsTo) {
-            this.copyBitsTo = copyBitsTo;
-            return builder;
+        @Override
+        public MinHashFieldMapper build(BuilderContext context) {
+            return new MinHashFieldMapper(name, new MinHashFieldType(buildFullName(context), hasDocValues.getValue(), meta.getValue()),
+                    multiFieldsBuilder.build(this, context), copyTo.build(), this,
+                    minhashAnalyzer.getValue(), copyBitsTo.getValue(), parserContext);
         }
     }
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder parse(final String name, final Map<String, Object> node,
+        public MinHashFieldMapper.Builder parse(final String name, final Map<String, Object> node,
                 final ParserContext parserContext) throws MapperParsingException {
             final MinHashFieldMapper.Builder builder = new MinHashFieldMapper.Builder(
-                    name);
-            parseField(builder, name, node, parserContext);
-            for (final Iterator<Map.Entry<String, Object>> iterator = node.entrySet()
-                    .iterator(); iterator.hasNext();) {
-                final Map.Entry<String, Object> entry = iterator.next();
-                final String propName = entry.getKey();
-                final Object propNode = entry.getValue();
-                if (propName.equals("minhash_analyzer") && propNode != null) {
-                    final NamedAnalyzer analyzer = parserContext
-                            .getIndexAnalyzers().get(propNode.toString());
-                    builder.minhashAnalyzer(analyzer);
-                    iterator.remove();
-                } else if (propName.equals("copy_bits_to")
-                        && propNode != null) {
-                    parseCopyBitsFields(propNode, builder);
-                    iterator.remove();
-                }
-            }
+                    name, parserContext, false);
+            builder.parse(name, parserContext, node);
             return builder;
         }
     }
 
-    public static void parseCopyBitsFields(final Object propNode, final Builder builder) {
-        final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
+    public static String[] parseCopyBitsFields(final Object propNode) {
         if (isArray(propNode)) {
-            for (final Object node : (List<Object>) propNode) {
-                copyToBuilder.add(nodeStringValue(node, null));
-            }
+            @SuppressWarnings("unchecked")
+            final List<Object> nodeList = (List<Object>) propNode;
+            return nodeList.stream().map(o -> nodeStringValue(o, null))
+                    .filter(s -> s != null).toArray(n -> new String[n]);
         } else {
-            copyToBuilder.add(nodeStringValue(propNode, null));
+            return new String[] { nodeStringValue(propNode, null) };
         }
-        builder.copyBitsTo(copyToBuilder.build());
     }
 
     static final class MinHashFieldType extends MappedFieldType {
 
-        public MinHashFieldType() {
+        public MinHashFieldType(String name, boolean hasDocValues, Map<String, String> meta) {
+            super(name, false, hasDocValues, TextSearchInfo.NONE, meta);
         }
 
-        protected MinHashFieldType(final MinHashFieldType ref) {
-            super(ref);
-        }
-
-        @Override
-        public MappedFieldType clone() {
-            return new MinHashFieldType(this);
+        public MinHashFieldType(String name) {
+            this(name, true, Collections.emptyMap());
         }
 
         @Override
         public String typeName() {
             return CONTENT_TYPE;
+        }
+
+        @Override
+        public DocValueFormat docValueFormat(String format, ZoneId timeZone) {
+            return DocValueFormat.BINARY;
         }
 
         @Override
@@ -181,7 +166,7 @@ public class MinHashFieldMapper extends FieldMapper {
         @Override
         public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
             failIfNoDocValues();
-            return new BytesBinaryDVIndexFieldData.Builder();
+            return new SortedSetOrdinalsIndexFieldData.Builder(CoreValuesSourceType.BYTES);
         }
 
         @Override
@@ -200,26 +185,44 @@ public class MinHashFieldMapper extends FieldMapper {
         }
     }
 
-    protected MinHashFieldMapper(final String simpleName, final MappedFieldType fieldType,
-            final MappedFieldType defaultFieldType, final Settings indexSettings,
-            final MultiFields multiFields, final CopyTo copyTo,
-            final NamedAnalyzer minhashAnalyzer, final CopyBitsTo copyBitsTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings,
-                multiFields, copyTo);
-        this.minhashAnalyzer = minhashAnalyzer;
-        this.copyBitsTo = copyBitsTo;
+    private final boolean stored;
+    private final boolean hasDocValues;
+    private final String nullValue;
+    private NamedAnalyzer minhashAnalyzer;
+    private CopyBitsTo copyBitsTo;
+
+    protected MinHashFieldMapper(String simpleName, MappedFieldType mappedFieldType,
+                MultiFields multiFields, CopyTo copyTo, Builder builder,
+                String minhashAnalyzer, String[] copyBitsTo, ParserContext parserContext) {
+        super(simpleName, mappedFieldType, multiFields, copyTo);
+        this.stored = builder.stored.getValue();
+        this.hasDocValues = builder.hasDocValues.getValue();
+        this.nullValue = builder.nullValue.getValue();
+        if (parserContext != null) {
+            this.minhashAnalyzer = parserContext.getIndexAnalyzers()
+                    .get(minhashAnalyzer);
+        }
+        final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
+        if (copyBitsTo != null && copyBitsTo.length > 0) {
+            for (final String value : copyBitsTo) {
+                copyToBuilder.add(value);
+            }
+        }
+        this.copyBitsTo = copyToBuilder.build();
     }
 
     @Override
-    protected void parseCreateField(final ParseContext context,
-            final List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(final ParseContext context) throws IOException {
+        if (stored == false && hasDocValues == false) {
+            return;
+        }
         String value;
         if (context.externalValueSet()) {
             value = context.externalValue().toString();
         } else {
             final XContentParser parser = context.parser();
             if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
-                value = fieldType().nullValueAsString();
+                value = nullValue;
             } else {
                 value = parser.textOrNull();
             }
@@ -230,12 +233,11 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         final byte[] minhashValue = MinHash.calculate(minhashAnalyzer, value);
-        if (fieldType().stored()) {
-            fields.add(
-                    new Field(fieldType().name(), minhashValue, fieldType()));
+        if (stored) {
+            context.doc().add(new StoredField(fieldType().name(), minhashValue));
         }
 
-        if (fieldType().hasDocValues()) {
+        if (hasDocValues) {
             CustomMinHashDocValuesField field = (CustomMinHashDocValuesField) context
                     .doc().getByKey(fieldType().name());
             if (field == null) {
@@ -245,9 +247,14 @@ public class MinHashFieldMapper extends FieldMapper {
             } else {
                 field.add(minhashValue);
             }
+        } else {
+            // Only add an entry to the field names field if the field is stored
+            // but has no doc values so exists query will work on a field with
+            // no doc values
+            createFieldNamesField(context);
         }
 
-        if (copyBitsTo != null) {
+        if (!copyBitsTo.copyBitsToFields().isEmpty()) {
             parseCopyBitsFields(
                     context.createExternalValueContext(
                             MinHash.toBinaryString(minhashValue)),
@@ -300,48 +307,28 @@ public class MinHashFieldMapper extends FieldMapper {
     }
 
     @Override
+    public ParametrizedFieldMapper.Builder getMergeBuilder() {
+        return new MinHashFieldMapper.Builder(simpleName()).init(this);
+    }
+
+    @Override
     protected String contentType() {
         return CONTENT_TYPE;
     }
 
-    @Override
-    protected void doMerge(final Mapper mergeWith) {
-        super.doMerge(mergeWith);
-        this.minhashAnalyzer = ((MinHashFieldMapper) mergeWith).minhashAnalyzer;
-        this.copyBitsTo = ((MinHashFieldMapper) mergeWith).copyBitsTo;
-    }
-
-    @Override
-    protected void doXContentBody(final XContentBuilder builder,
-            final boolean includeDefaults, final Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
-        builder.field("minhash_analyzer", minhashAnalyzer.name());
-        if (copyBitsTo != null) {
-            copyBitsTo.toXContent(builder, params);
-        }
-    }
-
-    public static class CustomMinHashDocValuesField implements IndexableField {
-
-        public static final FieldType TYPE = new FieldType();
-        static {
-            TYPE.setDocValuesType(DocValuesType.BINARY);
-            TYPE.freeze();
-        }
+    public static class CustomMinHashDocValuesField extends CustomDocValuesField {
 
         private final ObjectArrayList<byte[]> bytesList;
 
         private int totalSize = 0;
 
-        private final String name;
-
-        public CustomMinHashDocValuesField(final String name, final byte[] bytes) {
-            this.name = name;
+        public CustomMinHashDocValuesField(String name, byte[] bytes) {
+            super(name);
             bytesList = new ObjectArrayList<>();
             add(bytes);
         }
 
-        public void add(final byte[] bytes) {
+        public void add(byte[] bytes) {
             bytesList.add(bytes);
             totalSize += bytes.length;
         }
@@ -350,52 +337,21 @@ public class MinHashFieldMapper extends FieldMapper {
         public BytesRef binaryValue() {
             try {
                 CollectionUtils.sortAndDedup(bytesList);
-                final int size = bytesList.size();
+                int size = bytesList.size();
                 final byte[] bytes = new byte[totalSize + (size + 1) * 5];
-                final ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
-                out.writeVInt(size); // write total number of values
-                for (int i = 0; i < size; i++) {
+                ByteArrayDataOutput out = new ByteArrayDataOutput(bytes);
+                out.writeVInt(size);  // write total number of values
+                for (int i = 0; i < size; i ++) {
                     final byte[] value = bytesList.get(i);
-                    final int valueLength = value.length;
+                    int valueLength = value.length;
                     out.writeVInt(valueLength);
                     out.writeBytes(value, 0, valueLength);
                 }
                 return new BytesRef(bytes, 0, out.getPosition());
-            } catch (final IOException e) {
-                throw new ElasticsearchException("Failed to get MinHash value",
-                        e);
+            } catch (IOException e) {
+                throw new ElasticsearchException("Failed to get MinHash value", e);
             }
 
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public IndexableFieldType fieldType() {
-            return TYPE;
-        }
-
-        @Override
-        public String stringValue() {
-            return null;
-        }
-
-        @Override
-        public Reader readerValue() {
-            return null;
-        }
-
-        @Override
-        public Number numericValue() {
-            return null;
-        }
-
-        @Override
-        public TokenStream tokenStream(final Analyzer analyzer, final TokenStream reuse) {
-            return null;
         }
     }
 
