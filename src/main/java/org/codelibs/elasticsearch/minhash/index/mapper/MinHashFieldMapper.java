@@ -63,9 +63,14 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         private final Parameter<String> nullValue = Parameter.stringParam("null_value", false, m->toType(m).nullValue, null);
         private final Parameter<Map<String, String>> meta
             = new Parameter<>("meta", true, Collections.emptyMap(), TypeParsers::parseMeta, m -> m.fieldType().meta());
-        private final Parameter<String> minhashAnalyzer = Parameter.stringParam(
-                "minhash_analyzer", true,
-                m -> toType(m).minhashAnalyzer.name(), null);
+        private final Parameter<String> minhashAnalyzer = Parameter
+                .stringParam("minhash_analyzer", true, m -> {
+                    NamedAnalyzer minhashAnalyzer = toType(m).minhashAnalyzer;
+                    if (minhashAnalyzer != null) {
+                        return minhashAnalyzer.name();
+                    }
+                    return "standard";
+                }, "standard");
         private final Parameter<String[]> copyBitsTo = new Parameter<>(
                 "copy_bits_to", true, null, (n, o) -> parseCopyBitsFields(o),
                 m -> {
