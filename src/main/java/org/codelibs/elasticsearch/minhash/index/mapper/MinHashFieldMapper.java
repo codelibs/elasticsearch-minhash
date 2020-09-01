@@ -79,6 +79,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
                     return fieldList.toArray(new String[fieldList.size()]);
                 });
         private ParserContext parserContext;
+        private NamedAnalyzer mergedAnalyzer;
 
         public Builder(String name) {
             this(name, null, false);
@@ -101,11 +102,39 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
             return this;
         }
 
+        public Builder minhashAnalyzer(NamedAnalyzer minhashAnalyzer) {
+            this.mergedAnalyzer = minhashAnalyzer;
+            return this;
+        }
+
+        private NamedAnalyzer minhashAnalyzer() {
+            if (mergedAnalyzer != null) {
+                return mergedAnalyzer;
+            }
+            if (parserContext != null) {
+                return parserContext.getIndexAnalyzers()
+                        .get(minhashAnalyzer.getValue());
+            }
+            return null;
+        }
+
+        private CopyBitsTo copyBitsTo() {
+            final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
+            if (copyBitsTo.getValue() != null) {
+                for (final String value : copyBitsTo.getValue()) {
+                    copyToBuilder.add(value);
+                }
+            }
+            return copyToBuilder.build();
+        }
+
         @Override
         public MinHashFieldMapper build(BuilderContext context) {
-            return new MinHashFieldMapper(name, new MinHashFieldType(buildFullName(context), hasDocValues.getValue(), meta.getValue()),
-                    multiFieldsBuilder.build(this, context), copyTo.build(), this,
-                    minhashAnalyzer.getValue(), copyBitsTo.getValue(), parserContext);
+            return new MinHashFieldMapper(name,
+                    new MinHashFieldType(buildFullName(context),
+                            hasDocValues.getValue(), meta.getValue()),
+                    multiFieldsBuilder.build(this, context), copyTo.build(),
+                    this, minhashAnalyzer(), copyBitsTo());
         }
     }
 
@@ -201,22 +230,13 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
     protected MinHashFieldMapper(String simpleName, MappedFieldType mappedFieldType,
                 MultiFields multiFields, CopyTo copyTo, Builder builder,
-                String minhashAnalyzer, String[] copyBitsTo, ParserContext parserContext) {
+                NamedAnalyzer minhashAnalyzer, CopyBitsTo copyBitsTo) {
         super(simpleName, mappedFieldType, multiFields, copyTo);
         this.stored = builder.stored.getValue();
         this.hasDocValues = builder.hasDocValues.getValue();
         this.nullValue = builder.nullValue.getValue();
-        if (parserContext != null) {
-            this.minhashAnalyzer = parserContext.getIndexAnalyzers()
-                    .get(minhashAnalyzer);
-        }
-        final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
-        if (copyBitsTo != null && copyBitsTo.length > 0) {
-            for (final String value : copyBitsTo) {
-                copyToBuilder.add(value);
-            }
-        }
-        this.copyBitsTo = copyToBuilder.build();
+        this.minhashAnalyzer = minhashAnalyzer;
+        this.copyBitsTo = copyBitsTo;
     }
 
     @Override
@@ -316,7 +336,10 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
     @Override
     public ParametrizedFieldMapper.Builder getMergeBuilder() {
-        return new MinHashFieldMapper.Builder(simpleName()).init(this);
+        Builder builder = new MinHashFieldMapper.Builder(simpleName())
+                .init(this);
+        builder.minhashAnalyzer(this.minhashAnalyzer);
+        return builder;
     }
 
     @Override
