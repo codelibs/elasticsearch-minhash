@@ -104,7 +104,7 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.checkerframework</groupId>
-					<artifactId>checker-compat-qual</artifactId>
+					<artifactId>checker-qual</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>com.google.code.findbugs</groupId>
