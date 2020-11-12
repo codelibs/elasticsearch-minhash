@@ -11,6 +11,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.Term;
@@ -37,14 +38,17 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.Mapper.TypeParser.ParserContext;
 import org.elasticsearch.index.mapper.MapperParsingException;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParametrizedFieldMapper;
 import org.elasticsearch.index.mapper.ParseContext;
+import org.elasticsearch.index.mapper.SourceValueFetcher;
 import org.elasticsearch.index.mapper.TextSearchInfo;
-import org.elasticsearch.index.mapper.TypeParsers;
+import org.elasticsearch.index.mapper.ValueFetcher;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
+import org.elasticsearch.search.lookup.SearchLookup;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 
@@ -61,8 +65,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         private final Parameter<Boolean> stored = Parameter.boolParam("store", false, m -> toType(m).stored, true);
         private final Parameter<Boolean> hasDocValues = Parameter.boolParam("doc_values", false, m -> toType(m).hasDocValues,  false);
         private final Parameter<String> nullValue = Parameter.stringParam("null_value", false, m->toType(m).nullValue, null);
-        private final Parameter<Map<String, String>> meta
-            = new Parameter<>("meta", true, Collections.emptyMap(), TypeParsers::parseMeta, m -> m.fieldType().meta());
+        private final Parameter<Map<String, String>> meta = Parameter.metaParam();
         private final Parameter<String> minhashAnalyzer = Parameter
                 .stringParam("minhash_analyzer", true, m -> {
                     NamedAnalyzer minhashAnalyzer = toType(m).minhashAnalyzer;
@@ -72,8 +75,8 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
                     return "standard";
                 }, "standard");
         private final Parameter<String[]> copyBitsTo = new Parameter<>(
-                "copy_bits_to", true, null, (n, o) -> parseCopyBitsFields(o),
-                m -> {
+                "copy_bits_to", true, () -> new String[0],
+                (n, c, o) -> parseCopyBitsFields(o), m -> {
                     List<String> fieldList = toType(m).copyBitsTo
                             .copyBitsToFields();
                     return fieldList.toArray(new String[fieldList.size()]);
@@ -120,10 +123,8 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
         private CopyBitsTo copyBitsTo() {
             final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
-            if (copyBitsTo.getValue() != null) {
-                for (final String value : copyBitsTo.getValue()) {
-                    copyToBuilder.add(value);
-                }
+            for (final String value : copyBitsTo.getValue()) {
+                copyToBuilder.add(value);
             }
             return copyToBuilder.build();
         }
@@ -131,7 +132,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         @Override
         public MinHashFieldMapper build(BuilderContext context) {
             return new MinHashFieldMapper(name,
-                    new MinHashFieldType(buildFullName(context),
+                    new MinHashFieldType(buildFullName(context), true,
                             hasDocValues.getValue(), meta.getValue()),
                     multiFieldsBuilder.build(this, context), copyTo.build(),
                     this, minhashAnalyzer(), copyBitsTo());
@@ -162,17 +163,22 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
     static final class MinHashFieldType extends MappedFieldType {
 
-        public MinHashFieldType(String name, boolean hasDocValues, Map<String, String> meta) {
-            super(name, false, hasDocValues, TextSearchInfo.NONE, meta);
+        public MinHashFieldType(String name, boolean isStored, boolean hasDocValues, Map<String, String> meta) {
+            super(name, false, isStored, hasDocValues, TextSearchInfo.NONE, meta);
         }
 
         public MinHashFieldType(String name) {
-            this(name, true, Collections.emptyMap());
+            this(name, true, true, Collections.emptyMap());
         }
 
         @Override
         public String typeName() {
             return CONTENT_TYPE;
+        }
+
+        @Override
+        public ValueFetcher valueFetcher(MapperService mapperService, SearchLookup searchLookup, String format) {
+            return SourceValueFetcher.identity(name(), mapperService, format);
         }
 
         @Override
@@ -201,9 +207,9 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         }
 
         @Override
-        public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
+        public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName, Supplier<SearchLookup> searchLookup) {
             failIfNoDocValues();
-            return new SortedSetOrdinalsIndexFieldData.Builder(CoreValuesSourceType.BYTES);
+            return new SortedSetOrdinalsIndexFieldData.Builder(name(), CoreValuesSourceType.BYTES);
         }
 
         @Override
