@@ -30,6 +30,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
+import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.CustomDocValuesField;
 import org.elasticsearch.index.mapper.FieldAliasMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -38,8 +39,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.Mapper.TypeParser.ParserContext;
 import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ParametrizedFieldMapper;
 import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.SourceValueFetcher;
 import org.elasticsearch.index.mapper.TextSearchInfo;
@@ -52,7 +51,7 @@ import org.elasticsearch.search.lookup.SearchLookup;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 
-public class MinHashFieldMapper extends ParametrizedFieldMapper {
+public class MinHashFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "minhash";
     
@@ -60,7 +59,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         return (MinHashFieldMapper) in;
     }
 
-    public static class Builder extends ParametrizedFieldMapper.Builder {
+    public static class Builder extends FieldMapper.Builder {
 
         private final Parameter<Boolean> stored = Parameter.boolParam("store", false, m -> toType(m).stored, true);
         private final Parameter<Boolean> hasDocValues = Parameter.boolParam("doc_values", false, m -> toType(m).hasDocValues,  false);
@@ -130,11 +129,11 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         }
 
         @Override
-        public MinHashFieldMapper build(BuilderContext context) {
+        public MinHashFieldMapper build(ContentPath contentPath) {
             return new MinHashFieldMapper(name,
-                    new MinHashFieldType(buildFullName(context), true,
+                    new MinHashFieldType(buildFullName(contentPath), true,
                             hasDocValues.getValue(), meta.getValue()),
-                    multiFieldsBuilder.build(this, context), copyTo.build(),
+                    multiFieldsBuilder.build(this, contentPath), copyTo.build(),
                     this, minhashAnalyzer(), copyBitsTo());
         }
     }
@@ -177,8 +176,8 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         }
 
         @Override
-        public ValueFetcher valueFetcher(MapperService mapperService, SearchLookup searchLookup, String format) {
-            return SourceValueFetcher.identity(name(), mapperService, format);
+        public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+            return SourceValueFetcher.identity(name(), context, format);
         }
 
         @Override
@@ -341,7 +340,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
     }
 
     @Override
-    public ParametrizedFieldMapper.Builder getMergeBuilder() {
+    public FieldMapper.Builder getMergeBuilder() {
         Builder builder = new MinHashFieldMapper.Builder(simpleName())
                 .init(this);
         builder.minhashAnalyzer(this.minhashAnalyzer);

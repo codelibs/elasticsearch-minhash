@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.codelibs</groupId>
 	<artifactId>elasticsearch-minhash</artifactId>
-	<version>7.10.1-SNAPSHOT</version>
+	<version>7.11.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>This plugin provides b-bit minhash algorism.</description>
 	<inceptionYear>2011</inceptionYear>
@@ -27,7 +27,7 @@
         <version>9</version>
     </parent>
 	<properties>
-		<elasticsearch.version>7.10.1</elasticsearch.version>
+		<elasticsearch.version>7.11.0</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -98,6 +98,23 @@
 			</plugin>
 		</plugins>
 	</build>
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>https://repo1.maven.org/maven2</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>codelibs.org</id>
+			<name>CodeLibs Repository</name>
+			<url>https://maven.codelibs.org/</url>
+		</repository>
+	</repositories>
 	<dependencies>
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -136,6 +153,14 @@
 			<artifactId>elasticsearch</artifactId>
 			<version>${elasticsearch.version}</version>
 			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.elasticsearch</groupId>
+					<artifactId>
+						elasticsearch-plugin-classloader
+					</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
