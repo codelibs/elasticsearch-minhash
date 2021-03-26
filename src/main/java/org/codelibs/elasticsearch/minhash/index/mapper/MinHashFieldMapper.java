@@ -43,8 +43,8 @@ import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.SourceValueFetcher;
 import org.elasticsearch.index.mapper.TextSearchInfo;
 import org.elasticsearch.index.mapper.ValueFetcher;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
+import org.elasticsearch.index.query.SearchExecutionContext;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
 import org.elasticsearch.search.lookup.SearchLookup;
@@ -176,7 +176,7 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+        public ValueFetcher valueFetcher(SearchExecutionContext context, String format) {
             return SourceValueFetcher.identity(name(), context, format);
         }
 
@@ -208,11 +208,11 @@ public class MinHashFieldMapper extends FieldMapper {
         @Override
         public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName, Supplier<SearchLookup> searchLookup) {
             failIfNoDocValues();
-            return new SortedSetOrdinalsIndexFieldData.Builder(name(), CoreValuesSourceType.BYTES);
+            return new SortedSetOrdinalsIndexFieldData.Builder(name(), CoreValuesSourceType.KEYWORD);
         }
 
         @Override
-        public Query existsQuery(QueryShardContext context) {
+        public Query existsQuery(SearchExecutionContext context) {
             if (hasDocValues()) {
                 return new DocValuesFieldExistsQuery(name());
             } else {
@@ -221,7 +221,7 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query termQuery(final Object value, final QueryShardContext context) {
+        public Query termQuery(final Object value, final SearchExecutionContext context) {
             throw new QueryShardException(context,
                     "MinHash fields do not support searching");
         }
@@ -326,7 +326,7 @@ public class MinHashFieldMapper extends FieldMapper {
     /** Creates an copy of the current field with given field name and boost */
     private static void parseCopy(final String field, final ParseContext context)
             throws IOException {
-        Mapper mapper = context.docMapper().mappers().getMapper(field);
+        Mapper mapper = context.mappingLookup().getMapper(field);
         if (mapper != null) {
             if (mapper instanceof FieldMapper) {
                 ((FieldMapper) mapper).parse(context);
