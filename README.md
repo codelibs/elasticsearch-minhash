@@ -1,4 +1,5 @@
 Elasticsearch MinHash Plugin
+[![Java CI with Maven](https://github.com/codelibs/elasticsearch-minhash/actions/workflows/maven.yml/badge.svg)](https://github.com/codelibs/elasticsearch-minhash/actions/workflows/maven.yml)
 =======================
 
 ## Overview
