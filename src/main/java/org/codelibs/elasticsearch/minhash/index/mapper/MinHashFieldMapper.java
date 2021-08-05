@@ -35,10 +35,11 @@ import org.elasticsearch.index.mapper.CustomDocValuesField;
 import org.elasticsearch.index.mapper.FieldAliasMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.elasticsearch.index.mapper.LuceneDocument;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.Mapper.TypeParser.ParserContext;
 import org.elasticsearch.index.mapper.MapperParsingException;
+import org.elasticsearch.index.mapper.MappingParserContext;
 import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.SourceValueFetcher;
 import org.elasticsearch.index.mapper.TextSearchInfo;
@@ -80,14 +81,14 @@ public class MinHashFieldMapper extends FieldMapper {
                             .copyBitsToFields();
                     return fieldList.toArray(new String[fieldList.size()]);
                 });
-        private ParserContext parserContext;
+        private MappingParserContext parserContext;
         private NamedAnalyzer mergedAnalyzer;
 
         public Builder(String name) {
             this(name, null, false);
         }
 
-        public Builder(String name, ParserContext parserContext, boolean hasDocValues) {
+        public Builder(String name, MappingParserContext parserContext, boolean hasDocValues) {
             super(name);
             this.parserContext = parserContext;
             this.hasDocValues.setValue(hasDocValues);
@@ -141,7 +142,7 @@ public class MinHashFieldMapper extends FieldMapper {
     public static class TypeParser implements Mapper.TypeParser {
         @Override
         public MinHashFieldMapper.Builder parse(final String name, final Map<String, Object> node,
-                final ParserContext parserContext) throws MapperParsingException {
+                final MappingParserContext parserContext) throws MapperParsingException {
             final MinHashFieldMapper.Builder builder = new MinHashFieldMapper.Builder(
                     name, parserContext, false);
             builder.parse(name, parserContext, node);
@@ -250,15 +251,11 @@ public class MinHashFieldMapper extends FieldMapper {
             return;
         }
         String value;
-        if (context.externalValueSet()) {
-            value = context.externalValue().toString();
+        final XContentParser parser = context.parser();
+        if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
+            value = nullValue;
         } else {
-            final XContentParser parser = context.parser();
-            if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
-                value = nullValue;
-            } else {
-                value = parser.textOrNull();
-            }
+            value = parser.textOrNull();
         }
 
         if (value == null) {
@@ -284,13 +281,16 @@ public class MinHashFieldMapper extends FieldMapper {
             // Only add an entry to the field names field if the field is stored
             // but has no doc values so exists query will work on a field with
             // no doc values
-            createFieldNamesField(context);
+            context.addToFieldNames(fieldType().name());
         }
 
         if (!copyBitsTo.copyBitsToFields().isEmpty()) {
-            parseCopyBitsFields(
-                    context.createExternalValueContext(
-                            MinHash.toBinaryString(minhashValue)),
+            LuceneDocument doc = new LuceneDocument();
+            for (final String field : copyBitsTo.copyBitsToFields()) {
+                doc.add(new StoredField(field,
+                        MinHash.toBinaryString(minhashValue)));
+            }
+            parseCopyBitsFields(context.switchDoc(doc),
                     copyBitsTo.copyBitsToFields);
         }
     }
@@ -303,8 +303,8 @@ public class MinHashFieldMapper extends FieldMapper {
             for (final String field : copyToFields) {
                 // In case of a hierarchy of nested documents, we need to figure out
                 // which document the field should go to
-                ParseContext.Document targetDoc = null;
-                for (ParseContext.Document doc = context
+                LuceneDocument targetDoc = null;
+                for (LuceneDocument doc = context
                         .doc(); doc != null; doc = doc.getParent()) {
                     if (field.startsWith(doc.getPrefix())) {
                         targetDoc = doc;
