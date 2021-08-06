@@ -57,7 +57,7 @@ public class MinHashPluginTest extends TestCase {
 
     public void test_runEs() throws Exception {
 
-        final String index = "test_index";
+        final String index = "dataset";
         final String type = "_doc";
 
         {
@@ -89,13 +89,7 @@ public class MinHashPluginTest extends TestCase {
                     // msg
                     .startObject("msg")//
                     .field("type", "text")//
-                    .field("copy_to", Lists.newArrayList("minhash_value1", "minhash_value2", "minhash_value3"))//
-                    .endObject()//
-
-                    // bits
-                    .startObject("bits")//
-                    .field("type", "keyword")//
-                    .field("store", true)//
+                    .field("copy_to", Lists.newArrayList("minhash_value1", "minhash_value2", "minhash_value3", "minhash_value4"))//
                     .endObject()//
 
                     // minhash
@@ -117,10 +111,17 @@ public class MinHashPluginTest extends TestCase {
                     .field("minhash_analyzer", "minhash_analyzer3")//
                     .endObject()//
 
+                    // minhash
+                    .startObject("minhash_value4")//
+                    .field("type", "minhash")//
+                    .field("bit_string", true)//
+                    .field("minhash_analyzer", "minhash_analyzer3")//
+                    .endObject()//
+
                     .endObject()//
                     .endObject()//
                     .endObject();
-            runner.createMapping(index, type, mappingBuilder);
+            runner.createMapping(index, mappingBuilder);
         }
 
         if (!runner.indexExists(index)) {
@@ -129,7 +130,7 @@ public class MinHashPluginTest extends TestCase {
 
         // create 1000 documents
         for (int i = 1; i <= 1000; i++) {
-            final IndexResponse indexResponse1 = runner.insert(index, type,
+            final IndexResponse indexResponse1 = runner.insert(index, 
                     String.valueOf(i), "{\"id\":\"" + i + "\",\"msg\":\"test "
                             + i % 100 + "\"}");
             assertEquals(Result.CREATED, indexResponse1.getResult());
@@ -161,7 +162,7 @@ public class MinHashPluginTest extends TestCase {
             final String type, final String id, final byte[] hash1,
             final byte[] hash2, final byte[] hash3) {
         final GetResponse response = client.prepareGet(index, type, id)
-                .setStoredFields(new String[] { "_source", "minhash_value1", "minhash_value2", "minhash_value3" }).execute()
+                .setStoredFields(new String[] { "_source", "minhash_value1", "minhash_value2", "minhash_value3", "minhash_value4" }).execute()
                 .actionGet();
         assertTrue(response.isExists());
         final Map<String, Object> source = response.getSourceAsMap();
