@@ -16,7 +16,7 @@ Please file an [issue](https://github.com/codelibs/elasticsearch-minhash/issues 
 
 ## Installation
 
-    $ $ES_HOME/bin/elasticsearch-plugin install org.codelibs:elasticsearch-minhash:7.8.0
+    $ $ES_HOME/bin/elasticsearch-plugin install org.codelibs:elasticsearch-minhash:7.10.1
 
 ## Getting Started
 
@@ -44,17 +44,15 @@ You are free to change tokenizer/char\_filter/filter settings, but the minhash f
 
 Put a minhash field into an index mapping:
 
-    $ curl -XPUT "localhost:9200/my_index/my_type/_mapping" -d '{
-      "my_type":{
-        "properties":{
-          "message":{
-            "type":"string",
-            "copy_to":"minhash_value"
-          },
-          "minhash_value":{
-            "type":"minhash",
-            "minhash_analyzer":"minhash_analyzer"
-          }
+    $ curl -XPUT "localhost:9200/my_index/_mapping" -d '{
+      "properties":{
+        "message":{
+          "type":"string",
+          "copy_to":"minhash_value"
+        },
+        "minhash_value":{
+          "type":"minhash",
+          "minhash_analyzer":"minhash_analyzer"
         }
       }
     }'
@@ -66,20 +64,20 @@ The above example calculates a minhash value of the message field and stores it 
 
 Add the following document:
 
-    $ curl -XPUT "localhost:9200/my_index/my_type/1" -d '{
+    $ curl -XPUT "localhost:9200/my_index/_doc/1" -d '{
       "message":"Fess is Java based full text search server provided as OSS product."
     }'
 
 The minhash value is calculated automatically when adding the document.
 You can check it as below:
 
-    $ curl -XGET "localhost:9200/my_index/my_type/1?pretty&fields=minhash_value,_source" 
+    $ curl -XGET "localhost:9200/my_index/_doc/1?pretty&fields=minhash_value,_source" 
 
 The response is:
 
     {
       "_index" : "my_index",
-      "_type" : "my_type",
+      "_type" : "_doc",
       "_id" : "1",
       "_version" : 1,
       "found" : true,

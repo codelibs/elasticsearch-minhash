@@ -5,7 +5,6 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeSt
 
 import java.io.IOException;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -13,7 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.Query;
@@ -25,15 +27,14 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.util.CollectionUtils;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
 import org.elasticsearch.index.mapper.CustomDocValuesField;
-import org.elasticsearch.index.mapper.FieldAliasMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.Mapper.TypeParser.ParserContext;
@@ -65,6 +66,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
         private final Parameter<Boolean> stored = Parameter.boolParam("store", false, m -> toType(m).stored, true);
         private final Parameter<Boolean> hasDocValues = Parameter.boolParam("doc_values", false, m -> toType(m).hasDocValues,  false);
         private final Parameter<String> nullValue = Parameter.stringParam("null_value", false, m->toType(m).nullValue, null);
+        private final Parameter<Boolean> bitString= Parameter.boolParam("bit_string", false, m -> toType(m).bitString, false);
         private final Parameter<Map<String, String>> meta = Parameter.metaParam();
         private final Parameter<String> minhashAnalyzer = Parameter
                 .stringParam("minhash_analyzer", true, m -> {
@@ -74,12 +76,11 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
                     }
                     return "standard";
                 }, "standard");
+        @Deprecated
         private final Parameter<String[]> copyBitsTo = new Parameter<>(
                 "copy_bits_to", true, () -> new String[0],
                 (n, c, o) -> parseCopyBitsFields(o), m -> {
-                    List<String> fieldList = toType(m).copyBitsTo
-                            .copyBitsToFields();
-                    return fieldList.toArray(new String[fieldList.size()]);
+                    return new String[0];
                 });
         private ParserContext parserContext;
         private NamedAnalyzer mergedAnalyzer;
@@ -96,7 +97,7 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
         @Override
         public List<Parameter<?>> getParameters() {
-            return Arrays.asList(meta, stored, hasDocValues, nullValue, minhashAnalyzer, copyBitsTo);
+            return Arrays.asList(meta, stored, hasDocValues, nullValue, bitString, minhashAnalyzer, copyBitsTo);
         }
 
         @Override
@@ -121,21 +122,14 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
             return null;
         }
 
-        private CopyBitsTo copyBitsTo() {
-            final CopyBitsTo.Builder copyToBuilder = new CopyBitsTo.Builder();
-            for (final String value : copyBitsTo.getValue()) {
-                copyToBuilder.add(value);
-            }
-            return copyToBuilder.build();
-        }
-
         @Override
         public MinHashFieldMapper build(BuilderContext context) {
             return new MinHashFieldMapper(name,
-                    new MinHashFieldType(buildFullName(context), true,
-                            hasDocValues.getValue(), meta.getValue()),
+                    new MinHashFieldType(buildFullName(context),
+                            stored.getValue(), hasDocValues.getValue(),
+                            meta.getValue()),
                     multiFieldsBuilder.build(this, context), copyTo.build(),
-                    this, minhashAnalyzer(), copyBitsTo());
+                    this, minhashAnalyzer());
         }
     }
 
@@ -162,13 +156,13 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
     }
 
     static final class MinHashFieldType extends MappedFieldType {
-
         public MinHashFieldType(String name, boolean isStored, boolean hasDocValues, Map<String, String> meta) {
-            super(name, false, isStored, hasDocValues, TextSearchInfo.NONE, meta);
+            super(name, false, isStored, hasDocValues, TextSearchInfo.NONE,
+                    meta);
         }
 
         public MinHashFieldType(String name) {
-            this(name, true, true, Collections.emptyMap());
+            this(name, true, false, Collections.emptyMap());
         }
 
         @Override
@@ -231,18 +225,18 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
     private final boolean stored;
     private final boolean hasDocValues;
     private final String nullValue;
+    private final boolean bitString;
     private NamedAnalyzer minhashAnalyzer;
-    private CopyBitsTo copyBitsTo;
 
     protected MinHashFieldMapper(String simpleName, MappedFieldType mappedFieldType,
                 MultiFields multiFields, CopyTo copyTo, Builder builder,
-                NamedAnalyzer minhashAnalyzer, CopyBitsTo copyBitsTo) {
+                NamedAnalyzer minhashAnalyzer) {
         super(simpleName, mappedFieldType, multiFields, copyTo);
         this.stored = builder.stored.getValue();
         this.hasDocValues = builder.hasDocValues.getValue();
         this.nullValue = builder.nullValue.getValue();
+        this.bitString = builder.bitString.getValue();
         this.minhashAnalyzer = minhashAnalyzer;
-        this.copyBitsTo = copyBitsTo;
     }
 
     @Override
@@ -268,7 +262,18 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
 
         final byte[] minhashValue = MinHash.calculate(minhashAnalyzer, value);
         if (stored) {
-            context.doc().add(new StoredField(fieldType().name(), minhashValue));
+            final IndexableField field;
+            if (bitString) {
+                final FieldType fieldtype = new FieldType(
+                        KeywordFieldMapper.Defaults.FIELD_TYPE);
+                fieldtype.setStored(stored);
+                field = new Field(fieldType().name(),
+                        MinHash.toBinaryString(minhashValue),
+                        fieldtype);
+            } else {
+                field = new StoredField(fieldType().name(), minhashValue);
+            }
+            context.doc().add(field);
         }
 
         if (hasDocValues) {
@@ -286,57 +291,6 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
             // but has no doc values so exists query will work on a field with
             // no doc values
             createFieldNamesField(context);
-        }
-
-        if (!copyBitsTo.copyBitsToFields().isEmpty()) {
-            parseCopyBitsFields(
-                    context.createExternalValueContext(
-                            MinHash.toBinaryString(minhashValue)),
-                    copyBitsTo.copyBitsToFields);
-        }
-    }
-
-    /** Creates instances of the fields that the current field should be copied to */
-    private static void parseCopyBitsFields(ParseContext context,
-            final List<String> copyToFields) throws IOException {
-        if (!context.isWithinCopyTo() && copyToFields.isEmpty() == false) {
-            context = context.createCopyToContext();
-            for (final String field : copyToFields) {
-                // In case of a hierarchy of nested documents, we need to figure out
-                // which document the field should go to
-                ParseContext.Document targetDoc = null;
-                for (ParseContext.Document doc = context
-                        .doc(); doc != null; doc = doc.getParent()) {
-                    if (field.startsWith(doc.getPrefix())) {
-                        targetDoc = doc;
-                        break;
-                    }
-                }
-                assert targetDoc != null;
-                final ParseContext copyToContext;
-                if (targetDoc == context.doc()) {
-                    copyToContext = context;
-                } else {
-                    copyToContext = context.switchDoc(targetDoc);
-                }
-                parseCopy(field, copyToContext);
-            }
-        }
-    }
-
-    /** Creates an copy of the current field with given field name and boost */
-    private static void parseCopy(final String field, final ParseContext context)
-            throws IOException {
-        Mapper mapper = context.docMapper().mappers().getMapper(field);
-        if (mapper != null) {
-            if (mapper instanceof FieldMapper) {
-                ((FieldMapper) mapper).parse(context);
-            } else if (mapper instanceof FieldAliasMapper) {
-                throw new IllegalArgumentException("Cannot copy to a field alias [" + mapper.name() + "].");
-            } else {
-                throw new IllegalStateException("The provided mapper [" + mapper.name() +
-                    "] has an unrecognized type [" + mapper.getClass().getSimpleName() + "].");
-            }
         }
     }
 
@@ -389,45 +343,6 @@ public class MinHashFieldMapper extends ParametrizedFieldMapper {
                 throw new ElasticsearchException("Failed to get MinHash value", e);
             }
 
-        }
-    }
-
-    public static class CopyBitsTo {
-
-        private final List<String> copyBitsToFields;
-
-        private CopyBitsTo(final List<String> copyBitsToFields) {
-            this.copyBitsToFields = copyBitsToFields;
-        }
-
-        public XContentBuilder toXContent(final XContentBuilder builder,
-                final Params params) throws IOException {
-            if (!copyBitsToFields.isEmpty()) {
-                builder.startArray("copy_bits_to");
-                for (final String field : copyBitsToFields) {
-                    builder.value(field);
-                }
-                builder.endArray();
-            }
-            return builder;
-        }
-
-        public static class Builder {
-            private final List<String> copyBitsToBuilders = new ArrayList<>();
-
-            public Builder add(final String field) {
-                copyBitsToBuilders.add(field);
-                return this;
-            }
-
-            public CopyBitsTo build() {
-                return new CopyBitsTo(
-                        Collections.unmodifiableList(copyBitsToBuilders));
-            }
-        }
-
-        public List<String> copyBitsToFields() {
-            return copyBitsToFields;
         }
     }
 }
