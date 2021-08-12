@@ -53,6 +53,7 @@ Put a minhash field into an index mapping:
         },
         "minhash_value":{
           "type":"minhash",
+          "store":true,
           "minhash_analyzer":"minhash_analyzer"
         }
       }
@@ -72,7 +73,7 @@ Add the following document:
 The minhash value is calculated automatically when adding the document.
 You can check it as below:
 
-    $ curl -XGET "localhost:9200/my_index/_doc/1?pretty&fields=minhash_value,_source" 
+    $ curl -XGET "localhost:9200/my_index/_doc/1?pretty&stored_fields=minhash_value,_source"
 
 The response is:
 

@@ -9,14 +9,12 @@ import org.elasticsearch.action.DocWriteResponse.Result;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.junit.Assert;
 
 import com.google.common.collect.Lists;
 
@@ -41,7 +39,8 @@ public class MinHashPluginTest extends TestCase {
                 settingsBuilder.put("http.cors.allow-origin", "*");
                 settingsBuilder.put("discovery.type", "single-node");
             }
-        }).build(newConfigs().clusterName(clusterName).numOfNode(1).pluginTypes("org.codelibs.elasticsearch.minhash.MinHashPlugin"));
+        }).build(newConfigs().clusterName(clusterName).numOfNode(1).pluginTypes(
+                "org.codelibs.elasticsearch.minhash.MinHashPlugin"));
 
         // wait for yellow status
         runner.ensureYellow();
@@ -75,8 +74,7 @@ public class MinHashPluginTest extends TestCase {
             runner.ensureYellow(index);
 
             // create a mapping
-            final XContentBuilder mappingBuilder = XContentFactory
-                    .jsonBuilder()//
+            final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder()//
                     .startObject()//
                     .startObject(type)//
                     .startObject("properties")//
@@ -86,15 +84,24 @@ public class MinHashPluginTest extends TestCase {
                     .field("type", "keyword")//
                     .endObject()//
 
+                    // num
+                    .startObject("num")//
+                    .field("type", "integer")//
+                    .endObject()//
+
                     // msg
                     .startObject("msg")//
                     .field("type", "text")//
-                    .field("copy_to", Lists.newArrayList("minhash_value1", "minhash_value2", "minhash_value3", "minhash_value4"))//
+                    .field("copy_to",
+                            Lists.newArrayList("minhash_value1",
+                                    "minhash_value2", "minhash_value3",
+                                    "minhash_value4"))//
                     .endObject()//
 
                     // minhash
                     .startObject("minhash_value1")//
                     .field("type", "minhash")//
+                    .field("store", true)//
                     .field("minhash_analyzer", "minhash_analyzer1")//
                     .field("copy_bits_to", "bits")//
                     .endObject()//
@@ -102,12 +109,14 @@ public class MinHashPluginTest extends TestCase {
                     // minhash
                     .startObject("minhash_value2")//
                     .field("type", "minhash")//
+                    .field("store", true)//
                     .field("minhash_analyzer", "minhash_analyzer2")//
                     .endObject()//
 
                     // minhash
                     .startObject("minhash_value3")//
                     .field("type", "minhash")//
+                    .field("store", true)//
                     .field("minhash_analyzer", "minhash_analyzer3")//
                     .endObject()//
 
@@ -115,7 +124,7 @@ public class MinHashPluginTest extends TestCase {
                     .startObject("minhash_value4")//
                     .field("type", "minhash")//
                     .field("bit_string", true)//
-                    .field("minhash_analyzer", "minhash_analyzer3")//
+                    .field("minhash_analyzer", "minhash_analyzer1")//
                     .endObject()//
 
                     .endObject()//
@@ -130,57 +139,47 @@ public class MinHashPluginTest extends TestCase {
 
         // create 1000 documents
         for (int i = 1; i <= 1000; i++) {
-            final IndexResponse indexResponse1 = runner.insert(index, 
+            final IndexResponse indexResponse1 = runner.insert(index,
                     String.valueOf(i), "{\"id\":\"" + i + "\",\"msg\":\"test "
-                            + i % 100 + "\"}");
+                            + i % 100 + "\",\"num\":" + i + "}");
             assertEquals(Result.CREATED, indexResponse1.getResult());
         }
         runner.refresh();
 
         final Client client = runner.client();
 
-        test_get(client, index, type, "1", new byte[] { 82, 56, -67, -10, 55,
-                -89, -85, -73, 90, -35, -93, 74, 77, -121, 60, -55 },
-                new byte[] { 125, 73, 13, -20, -83, 34, -120, -63, -23, -44,
-                        -52, 98, 25, 121, -56, 107 }, new byte[] { 91, -99,
-                        105, 16, -5, -118, -14, -36 });
+        test_get(client, index, type, "1", "Uji99jenq7da3aNKTYc8yQ==",
+                "fUkN7K0iiMHp1MxiGXnIaw==", "W51pEPuK8tw=");
 
-        test_get(client, index, type, "2", new byte[] { 0, 96, 125, -3, -121,
-                -89, -5, 39, -1, -108, 27, -55, 42, -45, 29, 64 }, new byte[] {
-                -15, 40, 77, 111, -91, 21, 10, 3, -31, -41, -84, -79, 57, -35,
-                -117, 123 }, new byte[] { -117, 93, 96, 36, 123, 24, -1, 60 });
+        test_get(client, index, type, "2", "AGB9/Yen+yf/lBvJKtMdQA==",
+                "8ShNb6UVCgPh16yxOd2Lew==", "i11gJHsY/zw=");
 
-        test_get(client, index, type, "101", new byte[] { 82, 56, -67, -10, 55,
-                -89, -85, -73, 90, -35, -93, 74, 77, -121, 60, -55 },
-                new byte[] { 125, 73, 13, -20, -83, 34, -120, -63, -23, -44,
-                        -52, 98, 25, 121, -56, 107 }, new byte[] { 91, -99,
-                        105, 16, -5, -118, -14, -36 });
+        test_get(client, index, type, "101", "Uji99jenq7da3aNKTYc8yQ==",
+                "fUkN7K0iiMHp1MxiGXnIaw==", "W51pEPuK8tw=");
 
     }
 
     private void test_get(final Client client, final String index,
-            final String type, final String id, final byte[] hash1,
-            final byte[] hash2, final byte[] hash3) {
+            final String type, final String id, final String hash1,
+            final String hash2, final String hash3) {
         final GetResponse response = client.prepareGet(index, type, id)
-                .setStoredFields(new String[] { "_source", "minhash_value1", "minhash_value2", "minhash_value3", "minhash_value4" }).execute()
-                .actionGet();
+                .setStoredFields(new String[] { "_source", "minhash_value1",
+                        "minhash_value2", "minhash_value3", "minhash_value4" })
+                .execute().actionGet();
         assertTrue(response.isExists());
         final Map<String, Object> source = response.getSourceAsMap();
         assertEquals("test " + Integer.parseInt(id) % 100, source.get("msg"));
 
         final DocumentField field1 = response.getField("minhash_value1");
-        final BytesArray value1 = (BytesArray) field1.getValue();
-        assertEquals(hash1.length, value1.length());
-        Assert.assertArrayEquals(hash1, value1.array());
+        final String value1 = (String) field1.getValue();
+        assertEquals(hash1, value1);
 
         final DocumentField field2 = response.getField("minhash_value2");
-        final BytesArray value2 = (BytesArray) field2.getValue();
-        assertEquals(hash2.length, value2.length());
-        Assert.assertArrayEquals(hash2, value2.array());
+        final String value2 = (String) field2.getValue();
+        assertEquals(hash2, value2);
 
         final DocumentField field3 = response.getField("minhash_value3");
-        final BytesArray value3 = (BytesArray) field3.getValue();
-        assertEquals(hash3.length, value3.length());
-        Assert.assertArrayEquals(hash3, value3.array());
+        final String value3 = (String) field3.getValue();
+        assertEquals(hash3, value3);
     }
 }
