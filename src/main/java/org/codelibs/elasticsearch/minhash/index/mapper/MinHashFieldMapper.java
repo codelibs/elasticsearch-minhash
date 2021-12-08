@@ -19,15 +19,14 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.codelibs.minhash.MinHash;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
-import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.DocumentParserContext;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.MapperBuilderContext;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MappingParserContext;
 import org.elasticsearch.index.mapper.SourceValueFetcher;
@@ -37,6 +36,7 @@ import org.elasticsearch.index.mapper.ValueFetcher;
 import org.elasticsearch.index.query.SearchExecutionContext;
 import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
 import org.elasticsearch.search.lookup.SearchLookup;
+import org.elasticsearch.xcontent.XContentParser;
 
 public class MinHashFieldMapper extends FieldMapper {
 
@@ -145,23 +145,23 @@ public class MinHashFieldMapper extends FieldMapper {
             return null;
         }
 
-        private MinHashFieldType buildFieldType(final ContentPath contentPath,
+        private MinHashFieldType buildFieldType(final MapperBuilderContext context,
                 final FieldType fieldType) {
-            return new MinHashFieldType(buildFullName(contentPath), fieldType,
+            return new MinHashFieldType(context.buildFullName(name), fieldType,
                     indexed.getValue(), stored.getValue(),
                     hasDocValues.getValue(), meta.getValue());
         }
 
         @Override
-        public MinHashFieldMapper build(final ContentPath contentPath) {
+        public MinHashFieldMapper build(final MapperBuilderContext context) {
             final FieldType fieldtype = new FieldType(
                     MinHashFieldMapper.Defaults.FIELD_TYPE);
             fieldtype.setIndexOptions(
                     indexed.getValue() ? IndexOptions.DOCS : IndexOptions.NONE);
             fieldtype.setStored(this.stored.getValue());
             return new MinHashFieldMapper(name, fieldtype,
-                    buildFieldType(contentPath, fieldtype),
-                    multiFieldsBuilder.build(this, contentPath), copyTo.build(),
+                    buildFieldType(context, fieldtype),
+                    multiFieldsBuilder.build(this, context), copyTo.build(),
                     this, minhashAnalyzer());
         }
     }
