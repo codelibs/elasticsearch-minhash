@@ -27,12 +27,12 @@
         <version>9</version>
     </parent>
 	<properties>
-		<elasticsearch.version>7.16.0</elasticsearch.version>
+		<elasticsearch.version>7.16.1</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<lucene.version>8.10.1</lucene.version>
-		<log4j.version>2.11.1</log4j.version>
+		<log4j.version>2.11.1-patch1</log4j.version>
 	</properties>
 	<build>
 		<plugins>
@@ -160,10 +160,14 @@
 						elasticsearch-plugin-classloader
 					</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-api</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
+			<groupId>org.codelibs.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
 			<version>${log4j.version}</version>
 			<scope>provided</scope>
@@ -179,6 +183,16 @@
 			<artifactId>elasticsearch-cluster-runner</artifactId>
 			<version>${elasticsearch.version}.0</version>
 			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
