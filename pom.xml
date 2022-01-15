@@ -27,12 +27,12 @@
         <version>9</version>
     </parent>
 	<properties>
-		<elasticsearch.version>7.16.2</elasticsearch.version>
+		<elasticsearch.version>7.16.3</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<lucene.version>8.10.1</lucene.version>
-		<log4j.version>2.17.0</log4j.version>
+		<log4j.version>2.17.1</log4j.version>
 	</properties>
 	<build>
 		<plugins>
