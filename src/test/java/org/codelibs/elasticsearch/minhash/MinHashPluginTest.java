@@ -1,3 +1,18 @@
+/*
+ * Copyright 2012-2022 CodeLibs Project and the Others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
+ */
 package org.codelibs.elasticsearch.minhash;
 
 import static org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner.newConfigs;
@@ -57,7 +72,6 @@ public class MinHashPluginTest extends TestCase {
     public void test_runEs() throws Exception {
 
         final String index = "dataset";
-        final String type = "_doc";
 
         {
             // create an index
@@ -76,7 +90,6 @@ public class MinHashPluginTest extends TestCase {
             // create a mapping
             final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder()//
                     .startObject()//
-                    .startObject(type)//
                     .startObject("properties")//
 
                     // id
@@ -128,7 +141,6 @@ public class MinHashPluginTest extends TestCase {
                     .endObject()//
 
                     .endObject()//
-                    .endObject()//
                     .endObject();
             runner.createMapping(index, mappingBuilder);
         }
@@ -148,21 +160,21 @@ public class MinHashPluginTest extends TestCase {
 
         final Client client = runner.client();
 
-        test_get(client, index, type, "1", "Uji99jenq7da3aNKTYc8yQ==",
+        test_get(client, index, "1", "Uji99jenq7da3aNKTYc8yQ==",
                 "fUkN7K0iiMHp1MxiGXnIaw==", "W51pEPuK8tw=");
 
-        test_get(client, index, type, "2", "AGB9/Yen+yf/lBvJKtMdQA==",
+        test_get(client, index, "2", "AGB9/Yen+yf/lBvJKtMdQA==",
                 "8ShNb6UVCgPh16yxOd2Lew==", "i11gJHsY/zw=");
 
-        test_get(client, index, type, "101", "Uji99jenq7da3aNKTYc8yQ==",
+        test_get(client, index, "101", "Uji99jenq7da3aNKTYc8yQ==",
                 "fUkN7K0iiMHp1MxiGXnIaw==", "W51pEPuK8tw=");
 
     }
 
     private void test_get(final Client client, final String index,
-            final String type, final String id, final String hash1,
+            final String id, final String hash1,
             final String hash2, final String hash3) {
-        final GetResponse response = client.prepareGet(index, type, id)
+        final GetResponse response = client.prepareGet(index, id)
                 .setStoredFields(new String[] { "_source", "minhash_value1",
                         "minhash_value2", "minhash_value3", "minhash_value4" })
                 .execute().actionGet();
