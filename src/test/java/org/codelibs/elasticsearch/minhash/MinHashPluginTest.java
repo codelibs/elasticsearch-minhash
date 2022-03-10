@@ -23,7 +23,7 @@ import org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner;
 import org.elasticsearch.action.DocWriteResponse.Result;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
@@ -116,7 +116,6 @@ public class MinHashPluginTest extends TestCase {
                     .field("type", "minhash")//
                     .field("store", true)//
                     .field("minhash_analyzer", "minhash_analyzer1")//
-                    .field("copy_bits_to", "bits")//
                     .endObject()//
 
                     // minhash

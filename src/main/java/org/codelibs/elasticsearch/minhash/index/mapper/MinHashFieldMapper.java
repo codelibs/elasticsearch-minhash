@@ -15,9 +15,6 @@
  */
 package org.codelibs.elasticsearch.minhash.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.isArray;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -35,6 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.codelibs.minhash.MinHash;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
+import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.SortedSetOrdinalsIndexFieldData;
 import org.elasticsearch.index.mapper.DocumentParserContext;
@@ -49,6 +47,7 @@ import org.elasticsearch.index.mapper.StringFieldType;
 import org.elasticsearch.index.mapper.TextSearchInfo;
 import org.elasticsearch.index.mapper.ValueFetcher;
 import org.elasticsearch.index.query.SearchExecutionContext;
+import org.elasticsearch.script.field.KeywordDocValuesField;
 import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.xcontent.XContentParser;
@@ -109,11 +108,6 @@ public class MinHashFieldMapper extends FieldMapper {
                     return "standard";
                 }, "standard");
 
-        @Deprecated
-        private final Parameter<String[]> copyBitsTo = new Parameter<>(
-                "copy_bits_to", true, () -> new String[0],
-                (n, c, o) -> parseCopyBitsFields(o), m -> new String[0]);
-
         private final MappingParserContext parserContext;
 
         private NamedAnalyzer mergedAnalyzer;
@@ -127,7 +121,7 @@ public class MinHashFieldMapper extends FieldMapper {
         @Override
         public List<Parameter<?>> getParameters() {
             return Arrays.asList(meta, indexed, stored, hasDocValues, nullValue,
-                    bitString, minhashAnalyzer, copyBitsTo);
+                    bitString, minhashAnalyzer);
         }
 
         @Override
@@ -194,17 +188,6 @@ public class MinHashFieldMapper extends FieldMapper {
         }
     }
 
-    @Deprecated
-    public static String[] parseCopyBitsFields(final Object propNode) {
-        if (isArray(propNode)) {
-            @SuppressWarnings("unchecked")
-            final List<Object> nodeList = (List<Object>) propNode;
-            return nodeList.stream().map(o -> nodeStringValue(o, null))
-                    .filter(s -> s != null).toArray(n -> new String[n]);
-        }
-        return new String[] { nodeStringValue(propNode, null) };
-    }
-
     public static final class MinHashFieldType extends StringFieldType {
         public MinHashFieldType(final String name, final FieldType fieldType,
                 final boolean isIndexed, final boolean isStored,
@@ -232,7 +215,9 @@ public class MinHashFieldMapper extends FieldMapper {
                 final Supplier<SearchLookup> searchLookup) {
             failIfNoDocValues();
             return new SortedSetOrdinalsIndexFieldData.Builder(name(),
-                    CoreValuesSourceType.KEYWORD);
+                    CoreValuesSourceType.KEYWORD,
+                    (dv, n) -> new KeywordDocValuesField(FieldData.toString(dv),
+                            n));
         }
 
         @Override
