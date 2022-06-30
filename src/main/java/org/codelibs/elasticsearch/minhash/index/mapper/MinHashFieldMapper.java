@@ -17,9 +17,7 @@ package org.codelibs.elasticsearch.minhash.index.mapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -119,9 +117,9 @@ public class MinHashFieldMapper extends FieldMapper {
         }
 
         @Override
-        public List<Parameter<?>> getParameters() {
-            return Arrays.asList(meta, indexed, stored, hasDocValues, nullValue,
-                    bitString, minhashAnalyzer);
+        public Parameter<?>[] getParameters() {
+            return new Parameter<?>[] { meta, indexed, stored, hasDocValues,
+                    nullValue, bitString, minhashAnalyzer };
         }
 
         @Override
