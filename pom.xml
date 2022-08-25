@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.codelibs</groupId>
 	<artifactId>elasticsearch-minhash</artifactId>
-	<version>8.3.3.1-SNAPSHOT</version>
+	<version>8.4.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>This plugin provides b-bit minhash algorism.</description>
 	<inceptionYear>2011</inceptionYear>
@@ -27,18 +27,18 @@
 		<version>9</version>
 	</parent>
 	<properties>
-		<elasticsearch.version>8.3.3</elasticsearch.version>
+		<elasticsearch.version>8.4.0</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
-		<lucene.version>9.2.0</lucene.version>
+		<lucene.version>9.3.0</lucene.version>
 		<guava.version>31.1-jre</guava.version>
-		<log4j.version>2.17.1</log4j.version>
+		<log4j.version>2.18.0</log4j.version>
 		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
 	<build>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.1</version>
+				<version>3.10.1</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<release>${maven.compiler.release}</release>
@@ -68,7 +68,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.2.0</version>
+				<version>3.4.1</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<docencoding>UTF-8</docencoding>
@@ -95,7 +95,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.3.0</version>
+				<version>3.4.2</version>
 				<configuration>
 					<appendAssemblyId>false</appendAssemblyId>
 					<outputDirectory>${project.build.directory}/releases/</outputDirectory>
