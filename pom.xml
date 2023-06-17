@@ -30,7 +30,7 @@
 		<elasticsearch.version>8.8.1</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<lucene.version>9.6.0</lucene.version>
-		<guava.version>31.1-jre</guava.version>
+		<guava.version>32.0.0-jre</guava.version>
 		<log4j.version>2.19.0</log4j.version>
 		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
