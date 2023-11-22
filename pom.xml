@@ -27,7 +27,7 @@
 		<version>9</version>
 	</parent>
 	<properties>
-		<elasticsearch.version>8.10.2</elasticsearch.version>
+		<elasticsearch.version>8.10.3</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<lucene.version>9.7.0</lucene.version>
 		<guava.version>32.1.2-jre</guava.version>
