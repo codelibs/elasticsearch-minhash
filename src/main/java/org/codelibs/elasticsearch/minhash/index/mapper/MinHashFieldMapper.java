@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -48,7 +47,6 @@ import org.elasticsearch.index.mapper.ValueFetcher;
 import org.elasticsearch.index.query.SearchExecutionContext;
 import org.elasticsearch.script.field.KeywordDocValuesField;
 import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
-import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.xcontent.XContentParser;
 
 public class MinHashFieldMapper extends FieldMapper {
@@ -169,7 +167,7 @@ public class MinHashFieldMapper extends FieldMapper {
             fieldtype.setStored(this.stored.getValue());
             return new MinHashFieldMapper(name, fieldtype,
                     buildFieldType(context, fieldtype),
-                    multiFieldsBuilder.build(this, context), copyTo.build(),
+                    multiFieldsBuilder.build(this, context), copyTo,
                     this, minhashAnalyzer());
         }
     }

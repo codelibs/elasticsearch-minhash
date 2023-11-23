@@ -20,6 +20,7 @@ import static org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner.newCo
 import java.util.Map;
 
 import org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.DocWriteResponse.Result;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -150,7 +151,7 @@ public class MinHashPluginTest extends TestCase {
 
         // create 1000 documents
         for (int i = 1; i <= 1000; i++) {
-            final IndexResponse indexResponse1 = runner.insert(index,
+            final DocWriteResponse indexResponse1 = runner.insert(index,
                     String.valueOf(i), "{\"id\":\"" + i + "\",\"msg\":\"test "
                             + i % 100 + "\",\"num\":" + i + "}");
             assertEquals(Result.CREATED, indexResponse1.getResult());
