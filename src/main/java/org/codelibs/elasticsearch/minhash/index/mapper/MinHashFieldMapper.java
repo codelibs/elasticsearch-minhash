@@ -153,7 +153,7 @@ public class MinHashFieldMapper extends FieldMapper {
 
         private MinHashFieldType buildFieldType(
                 final MapperBuilderContext context, final FieldType fieldType) {
-            return new MinHashFieldType(context.buildFullName(name), fieldType,
+            return new MinHashFieldType(context.buildFullName(name()), fieldType,
                     indexed.getValue(), stored.getValue(),
                     hasDocValues.getValue(), meta.getValue());
         }
@@ -165,7 +165,7 @@ public class MinHashFieldMapper extends FieldMapper {
             fieldtype.setIndexOptions(
                     indexed.getValue() ? IndexOptions.DOCS : IndexOptions.NONE);
             fieldtype.setStored(this.stored.getValue());
-            return new MinHashFieldMapper(name, fieldtype,
+            return new MinHashFieldMapper(name(), fieldtype,
                     buildFieldType(context, fieldtype),
                     multiFieldsBuilder.build(this, context), copyTo,
                     this, minhashAnalyzer());

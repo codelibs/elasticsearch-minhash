@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.codelibs</groupId>
 	<artifactId>elasticsearch-minhash</artifactId>
-	<version>8.13.2.1-SNAPSHOT</version>
+	<version>8.14.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>This plugin provides b-bit minhash algorism.</description>
 	<inceptionYear>2011</inceptionYear>
@@ -27,7 +27,7 @@
 		<version>9</version>
 	</parent>
 	<properties>
-		<elasticsearch.version>8.13.2</elasticsearch.version>
+		<elasticsearch.version>8.14.0</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.codelibs.elasticsearch.minhash.MinHashPlugin</elasticsearch.plugin.classname>
 		<lucene.version>9.10.0</lucene.version>
 		<guava.version>32.1.2-jre</guava.version>
